@@ -79,3 +79,34 @@ def test_numeric_tolerance_is_absolute_005_and_integers_are_exact():
     assert not results_match([[451961]], [[451960]], False)  # integers must be exact
     assert results_match([["a", 1.83], ["b", 2.0]], [["b", 2], ["a", 1.8]], False)
     assert not results_match([["a", 1.83]], [["b", 1.83]], False)
+
+
+# --- held-out set: gold validity and independence from everything the model was tuned on --------------------------
+HOLDOUT = load_questions("benchmark/holdout.yaml")
+
+
+def test_holdout_has_twenty_new_questions_and_no_overlap():
+    from app.retrieval import load_yaml
+    assert len(HOLDOUT) == 20 and len({q["id"] for q in HOLDOUT}) == 20
+    norm = lambda t: " ".join(t.lower().split())  # noqa: E731
+    seen = {norm(q["question"]) for q in QUESTIONS} | {norm(e["question"]) for e in load_yaml("examples.yaml")}
+    assert not seen & {norm(q["question"]) for q in HOLDOUT}
+    assert {q["difficulty"] for q in HOLDOUT} == {"easy", "medium", "hard"}
+
+
+@pytest.mark.parametrize("q", HOLDOUT, ids=[q["id"] for q in HOLDOUT])
+def test_holdout_gold_is_valid_deterministic_and_unambiguous(q, settings):
+    g = validate(q["sql"], settings.max_rows)
+    assert g.ok, g.message
+    first, second = execute(g.sql, settings), execute(g.sql, settings)
+    assert first.rows == second.rows and first.row_count >= 1 and not first.truncated
+    if first.row_count == 1 and len(first.rows[0]) == 1:
+        assert first.rows[0][0] not in (0, None), "degenerate gold answer"
+    if q.get("ordered") and "LIMIT 1" in q["sql"].upper():
+        # a top-1 question must have a unique winner, or the gold depends on an arbitrary tie-break
+        key = "ORDER BY"
+        base = q["sql"].split("LIMIT 1")[0]
+        top2 = execute(validate(base.replace(key, "ORDER BY", 1) + " LIMIT 2").sql, settings)
+        if top2.row_count == 2:
+            order_col = top2.columns[-1]
+            assert top2.rows[0][-1] != top2.rows[1][-1], f"{q['id']}: the top-1 answer is tied on {order_col}"

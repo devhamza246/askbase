@@ -1,0 +1,107 @@
+# HELD-OUT set: 20 questions written AFTER run 2's prompt tuning and never used to tune anything. The prompts are frozen while this
+# runs. Same format and scoring as questions.yaml. Gold queries use the documented business definitions (glossary.yaml).
+- id: h01
+  difficulty: easy
+  question: How many shipments are currently in transit?
+  sql: SELECT COUNT(*) FROM shipments WHERE status = 'in_transit'
+- id: h02
+  difficulty: easy
+  question: What is our cheapest active product and what does it cost?
+  ordered: true
+  sql: SELECT name, price FROM products WHERE is_active ORDER BY price, id LIMIT 1
+- id: h03
+  difficulty: easy
+  question: How many customers are from Germany?
+  sql: SELECT COUNT(*) FROM customers WHERE country = 'Germany'
+- id: h04
+  difficulty: easy
+  question: How many reviews have a rating of 1 or 2?
+  sql: SELECT COUNT(*) FROM reviews WHERE rating <= 2
+- id: h05
+  difficulty: easy
+  question: Which payment methods do customers use?
+  sql: SELECT DISTINCT method FROM payments ORDER BY method
+- id: h06
+  difficulty: easy
+  question: How many orders were placed through the web channel in 2026?
+  sql: SELECT COUNT(*) FROM orders WHERE channel = 'web' AND order_date >= '2026-01-01' AND order_date < '2027-01-01'
+- id: h07
+  difficulty: medium
+  question: How many units of the Trail Runner have we sold?
+  sql: >-
+    SELECT SUM(oi.quantity) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+    WHERE p.name = 'Trail Runner' AND o.status IN ('completed','shipped')
+- id: h08
+  difficulty: medium
+  question: Which customer country brings in the most revenue?
+  ordered: true
+  sql: >-
+    SELECT c.country, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('completed','shipped') GROUP BY c.country ORDER BY revenue DESC LIMIT 1
+- id: h09
+  difficulty: medium
+  question: What is the average discount on orders that had a discount?
+  sql: SELECT ROUND(AVG(discount_amount), 2) FROM orders WHERE discount_amount > 0
+- id: h10
+  difficulty: medium
+  question: How many orders were placed in each quarter of 2025?
+  sql: >-
+    SELECT DATE_TRUNC('quarter', order_date)::date AS quarter, COUNT(*) FROM orders
+    WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY 1
+- id: h11
+  difficulty: medium
+  question: What percentage of payments failed?
+  sql: SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'failed') / COUNT(*), 1) FROM payments
+- id: h12
+  difficulty: medium
+  question: Which customer has placed the most orders?
+  ordered: true
+  sql: >-
+    SELECT c.full_name, COUNT(*) AS orders FROM orders o JOIN customers c ON c.id = o.customer_id
+    GROUP BY c.id, c.full_name ORDER BY orders DESC, c.id LIMIT 1
+- id: h13
+  difficulty: medium
+  question: What is the average review rating for products in the Phones category?
+  sql: >-
+    SELECT ROUND(AVG(r.rating), 2) FROM reviews r JOIN products p ON p.id = r.product_id
+    JOIN categories c ON c.id = p.category_id WHERE c.name = 'Phones'
+- id: h14
+  difficulty: medium
+  question: How many different customers placed an order in November 2026?
+  sql: SELECT COUNT(DISTINCT customer_id) FROM orders WHERE order_date >= '2026-11-01' AND order_date < '2026-12-01'
+- id: h15
+  difficulty: hard
+  question: Which sales channel has the highest average order value among completed and shipped orders?
+  ordered: true
+  sql: >-
+    SELECT channel, ROUND(AVG(total_amount), 2) AS aov FROM orders WHERE status IN ('completed','shipped')
+    GROUP BY channel ORDER BY aov DESC LIMIT 1
+- id: h16
+  difficulty: hard
+  question: What percentage of our 2026 revenue came from the web channel?
+  sql: >-
+    SELECT ROUND(100.0 * SUM(total_amount) FILTER (WHERE channel = 'web') / SUM(total_amount), 1) FROM orders
+    WHERE status IN ('completed','shipped') AND order_date >= '2026-01-01' AND order_date < '2027-01-01'
+- id: h17
+  difficulty: hard
+  question: What is the average order value for each customer segment, counting only completed and shipped orders?
+  sql: >-
+    SELECT c.segment, ROUND(AVG(o.total_amount), 2) FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('completed','shipped') GROUP BY c.segment
+- id: h18
+  difficulty: hard
+  question: How many customers have never left a review?
+  sql: SELECT COUNT(*) FROM customers c LEFT JOIN reviews r ON r.customer_id = c.id WHERE r.id IS NULL
+- id: h19
+  difficulty: hard
+  question: Which top-level product category sold the most units in 2026?
+  ordered: true
+  sql: >-
+    SELECT pc.name, SUM(oi.quantity) AS units FROM order_items oi JOIN orders o ON o.id = oi.order_id
+    JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id JOIN categories pc ON pc.id = c.parent_id
+    WHERE o.status IN ('completed','shipped') AND o.order_date >= '2026-01-01' AND o.order_date < '2027-01-01'
+    GROUP BY pc.name ORDER BY units DESC LIMIT 1
+- id: h20
+  difficulty: hard
+  question: On average, how many order lines does an order have?
+  sql: SELECT ROUND(AVG(n), 2) FROM (SELECT COUNT(*) AS n FROM order_items GROUP BY order_id) t

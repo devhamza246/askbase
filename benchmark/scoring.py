@@ -18,8 +18,8 @@ import yaml
 QUESTIONS = Path(__file__).parent / "questions.yaml"
 
 
-def load_questions() -> list[dict]:
-    return yaml.safe_load(QUESTIONS.read_text(encoding="utf-8"))
+def load_questions(path: str | Path | None = None) -> list[dict]:
+    return yaml.safe_load(Path(path or QUESTIONS).read_text(encoding="utf-8"))
 
 
 def _norm_cell(value: Any) -> Any:

@@ -53,12 +53,12 @@ def percentile(values: list[float], pct: float) -> float:
     return ordered[max(0, min(len(ordered) - 1, round(pct / 100 * len(ordered) + 0.4999) - 1))]
 
 
-def run(settings: Settings, limit: int | None = None, only: list[str] | None = None) -> dict:
+def run(settings: Settings, limit: int | None = None, only: list[str] | None = None, questions_path: str | None = None) -> dict:
     llm = AnthropicLLM(settings) if settings.llm_configured else None
     if llm is None:
         raise SystemExit("no LLM available: set ANTHROPIC_API_KEY, or use --mode replay with a cassette")
     agent = Askbase(settings, llm, Retriever(_kb_url(settings)))
-    questions = load_questions()
+    questions = load_questions(questions_path)
     if only:
         questions = [q for q in questions if q["id"] in only]
     if limit:
@@ -111,11 +111,12 @@ def main() -> int:
     ap.add_argument("--cassette", default=str(HERE / "cassette.jsonl"))
     ap.add_argument("--limit", type=int)
     ap.add_argument("--only", help="comma separated question ids")
+    ap.add_argument("--questions", help="question file (default: questions.yaml; use benchmark/holdout.yaml for the held-out set)")
     ap.add_argument("--out", default=str(HERE / "results" / "latest.json"))
     ap.add_argument("--gauge-out")
     args = ap.parse_args()
     settings = dataclasses.replace(Settings(), llm_mode=args.mode, cassette=args.cassette)
-    result = run(settings, args.limit, args.only.split(",") if args.only else None)
+    result = run(settings, args.limit, args.only.split(",") if args.only else None, args.questions)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(result, indent=2), encoding="utf-8")
     if args.gauge_out:

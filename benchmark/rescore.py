@@ -16,10 +16,10 @@ from .run import gold_result
 from .scoring import load_questions, results_match, results_match_lenient
 
 
-def main(path: str) -> int:
+def main(path: str, questions: str | None = None) -> int:
     settings = Settings()
     run = json.loads(Path(path).read_text(encoding="utf-8"))
-    gold_by_id = {q["id"]: q for q in load_questions()}
+    gold_by_id = {q["id"]: q for q in load_questions(questions)}
     strict = lenient = answered = 0
     by_diff: dict[str, list[int]] = {}
     for r in run["rows"]:
@@ -55,4 +55,4 @@ def main(path: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "benchmark/run1-results.json"))
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "benchmark/run1-results.json", sys.argv[2] if len(sys.argv) > 2 else None))
