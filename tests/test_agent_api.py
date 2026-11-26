@@ -222,3 +222,52 @@ def test_api_daily_spend_cap(settings, kb_url):
     app.state.budget.add(0.02)
     body = TestClient(app).post("/api/ask", json={"question": "How many orders?"}).json()
     assert body["status"] == "rate_limited" and "spend cap" in body["reason"]
+
+
+# --- recorded-answer mode: the public demo replays recorded responses and never spends credits -------------------------
+def _fake_anthropic(monkeypatch):
+    """Patch the network: a canned Claude that answers the SQL and summary prompts. Returns a call counter."""
+    import httpx
+    calls = {"n": 0}
+
+    def post(url, headers=None, json=None, timeout=None):
+        calls["n"] += 1
+        system = json["system"]
+        text = ('{"sql": "SELECT COUNT(*) AS n FROM customers", "assumptions": ""}' if "SQL analyst" in system
+                else "There are 400 customers.")
+        return httpx.Response(200, json={"content": [{"type": "text", "text": text}], "usage": {"input_tokens": 100, "output_tokens": 20}},
+                              request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", post)
+    return calls
+
+
+def test_record_then_replay_with_no_key_and_no_network(settings, kb_url, tmp_path, monkeypatch):
+    from app.llm import AnthropicLLM
+    cassette = tmp_path / "c.jsonl"
+    calls = _fake_anthropic(monkeypatch)
+    live = dataclasses.replace(settings, anthropic_key="sk-test", llm_mode="auto", cassette=str(cassette))
+    first = Askbase(live, AnthropicLLM(live), Retriever(kb_url)).ask("How many customers do we have?")
+    assert first.status == "ok" and first.rows == [[400]] and calls["n"] == 2 and cassette.read_text().count("\n") == 2
+
+    # the public demo: no key at all, replay mode, and any network call would be a bug
+    import httpx
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: pytest.fail("a network call was made in replay mode"))
+    demo = dataclasses.replace(settings, anthropic_key="", llm_mode="replay", cassette=str(cassette))
+    assert demo.llm_configured
+    agent = Askbase(demo, AnthropicLLM(demo), Retriever(kb_url))
+    again = agent.ask("How many customers do we have?")
+    assert again.status == "ok" and again.rows == [[400]] and again.answer == "There are 400 customers."
+    assert again.usage["cost_usd"] == 0 and again.sql == first.sql
+    miss = agent.ask("What is the airspeed velocity of an unladen swallow?")
+    assert miss.status == "not_recorded" and "recorded runs" in miss.reason and miss.executed_sql is None
+
+
+def test_status_reports_the_answer_mode(settings, kb_url, tmp_path):
+    from app.llm import AnthropicLLM
+    demo = dataclasses.replace(settings, anthropic_key="", llm_mode="replay", cassette=str(tmp_path / "none.jsonl"))
+    app = create_app(demo, Askbase(demo, AnthropicLLM(demo), Retriever(kb_url)))
+    assert TestClient(app).get("/api/status").json()["answer_mode"] == "recorded"
+    body = TestClient(app).post("/api/ask", json={"question": "Anything at all?"}).json()
+    assert body["status"] == "not_recorded"
+    live = dataclasses.replace(settings, anthropic_key="k", llm_mode="auto")
+    assert TestClient(create_app(live, Askbase(live, None, Retriever(kb_url)))).get("/api/status").json()["answer_mode"] == "live"

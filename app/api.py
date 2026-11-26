@@ -89,7 +89,8 @@ def create_app(settings: Settings | None = None, agent: Askbase | None = None) -
 
     @app.get("/api/status")
     def status() -> dict:
-        return {"version": __version__, "llm_configured": agent.llm is not None, "max_rows": s.max_rows,
+        mode = "recorded" if s.llm_mode == "replay" else ("live" if s.anthropic_key else "none")
+        return {"version": __version__, "llm_configured": agent.llm is not None, "answer_mode": mode, "max_rows": s.max_rows,
                 "statement_timeout_ms": s.statement_timeout_ms, "daily_spend_cap_usd": s.daily_spend_cap_usd,
                 "spent_today_usd": round(budget.spent, 4), "models": {"sql": s.sql_model, "fast": s.fast_model},
                 "examples": EXAMPLE_QUESTIONS, "attack_prompts": ATTACK_PROMPTS}

@@ -48,7 +48,10 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ASKBASE_SQL_MODEL: ${ASKBASE_SQL_MODEL:-claude-sonnet-5-5}
       ASKBASE_FAST_MODEL: ${ASKBASE_FAST_MODEL:-claude-haiku-5-5}
-      ASKBASE_DAILY_SPEND_CAP_USD: ${ASKBASE_DAILY_SPEND_CAP_USD:-2}
+      ASKBASE_DAILY_SPEND_CAP_USD: ${ASKBASE_DAILY_SPEND_CAP_USD:-0.5}
+      # "replay" = recorded-answer mode: the public demo replays recorded model responses and never calls the API
+      ASKBASE_LLM_MODE: ${ASKBASE_LLM_MODE:-auto}
+      ASKBASE_CASSETTE: ${ASKBASE_CASSETTE:-/app/benchmark/cassette.jsonl}
       ASKBASE_RATE_LIMIT_PER_MIN: ${ASKBASE_RATE_LIMIT_PER_MIN:-12}
     depends_on:
       bootstrap:

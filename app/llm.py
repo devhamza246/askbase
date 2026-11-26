@@ -32,6 +32,10 @@ class LLMNotConfigured(LLMError):
     pass
 
 
+class ReplayMiss(LLMError):
+    """Replay mode and this exact request was never recorded: no network call is made, nothing is spent."""
+
+
 @dataclass
 class Reply:
     text: str
@@ -114,7 +118,7 @@ class AnthropicLLM:
         if hit and self.s.llm_mode != "live":
             return Reply(hit["text"], model, hit["input_tokens"], hit["output_tokens"], 0.0, 0.0, cached=True)
         if self.s.llm_mode == "replay":
-            raise LLMError("no recorded LLM response for this request (replay mode)")
+            raise ReplayMiss("no recorded LLM response for this request (replay mode)")
         if not self.s.anthropic_key:
             raise LLMNotConfigured("ANTHROPIC_API_KEY is not set")
         if self.budget and self.budget.exhausted():

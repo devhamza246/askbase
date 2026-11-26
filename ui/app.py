@@ -48,7 +48,7 @@ def render_answer(a: dict):
         st.error(f"🛡️ **Blocked by the guardrail, nothing was executed.** {a.get('reason', '')}")
     elif status_ == "refused":
         st.warning(a.get("reason") or "I can't help with that.")
-    elif status_ in ("error", "no_llm", "rate_limited"):
+    elif status_ in ("error", "no_llm", "rate_limited", "not_recorded"):
         st.info(a.get("reason") or "Something went wrong.")
     if a.get("answer"):
         st.markdown(a["answer"])
@@ -112,7 +112,11 @@ with st.sidebar:
         else:
             st.error("Blocked: " + "; ".join(verdict.get("reasons", [verdict.get("reason", "?")])))
     st.divider()
-    if info.get("llm_configured") is False:
+    if info.get("answer_mode") == "recorded":
+        st.info("**Recorded-answer mode.** The suggested questions above were run by the real model and recorded. "
+                "This demo replays them, so it never calls a paid API and cannot spend anyone's credits. "
+                "Other questions are not answered here.")
+    elif info.get("llm_configured") is False:
         st.warning("No language model is configured on this server, so questions are not answered yet. The guardrail playground still works.")
     st.caption(f"Row cap {info.get('max_rows', '?')} · timeout {info.get('statement_timeout_ms', 0) / 1000:.0f}s · "
                f"models: {info.get('models', {}).get('sql', '?')} / {info.get('models', {}).get('fast', '?')}")
@@ -131,7 +135,10 @@ if not st.session_state.messages:
              "Try an attack from the sidebar.")
     st.markdown("**Sample data:** an online shop with customers, orders, order lines, products, categories, payments, "
                 "shipments and reviews (January 2025 to mid-November 2026).")
-    if info.get("llm_configured") is False:
+    if info.get("answer_mode") == "recorded":
+        st.info("Click one of the suggested questions or attacks in the sidebar. Their answers were recorded from the real model and "
+                "are replayed against the live database, so nothing here spends API credits.")
+    elif info.get("llm_configured") is False:
         st.info("This server has no language model configured yet, so questions are not answered. "
                 "The SQL guardrail playground in the sidebar works and shows what would be stopped.")
 
