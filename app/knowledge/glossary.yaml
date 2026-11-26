@@ -1,0 +1,61 @@
+# Business definitions the model must apply instead of guessing. Retrieved when a term appears in the question.
+- term: revenue
+  aliases: [sales, turnover, income, gross revenue]
+  definition: Revenue counts only orders whose status is 'completed' or 'shipped'. Cancelled and refunded orders are excluded. Use orders.total_amount.
+  sql_hint: "SUM(o.total_amount) FILTER (WHERE o.status IN ('completed','shipped')) or WHERE o.status IN ('completed','shipped')"
+- term: order count
+  aliases: [number of orders, orders placed, how many orders]
+  definition: Unless the question says otherwise, count every order regardless of status.
+  sql_hint: COUNT(*) FROM orders
+- term: average order value
+  aliases: [AOV, average basket, average ticket]
+  definition: Revenue divided by the number of revenue-counting orders (status completed or shipped).
+  sql_hint: "AVG(total_amount) over orders WHERE status IN ('completed','shipped')"
+- term: units sold
+  aliases: [quantity sold, items sold, units]
+  definition: Sum of order_items.quantity over orders whose status is 'completed' or 'shipped'.
+  sql_hint: "SUM(oi.quantity) JOIN orders o ON o.id = oi.order_id WHERE o.status IN ('completed','shipped')"
+- term: product revenue
+  aliases: [revenue by product, best selling, top products, top selling]
+  definition: Per-product revenue is SUM(order_items.quantity * order_items.unit_price) over revenue-counting orders. "Best selling" and "top" mean highest product revenue unless the question says units.
+  sql_hint: SUM(oi.quantity * oi.unit_price)
+- term: gross margin
+  aliases: [profit, margin, gross profit]
+  definition: Per line, (unit_price - products.cost) * quantity, over revenue-counting orders. Margin percent is margin divided by line revenue.
+  sql_hint: SUM((oi.unit_price - p.cost) * oi.quantity)
+- term: active customer
+  aliases: [active customers, buyers]
+  definition: A customer with at least one order whose status is not 'cancelled' in the period.
+  sql_hint: COUNT(DISTINCT customer_id) WHERE status <> 'cancelled'
+- term: repeat customer
+  aliases: [returning customer, repeat buyers, loyal]
+  definition: A customer with two or more orders (any status except cancelled).
+  sql_hint: GROUP BY customer_id HAVING COUNT(*) >= 2
+- term: refund rate
+  aliases: [refunds, returns rate, return rate]
+  definition: Refunded orders divided by all orders (all statuses), as a percentage.
+  sql_hint: "100.0 * COUNT(*) FILTER (WHERE status = 'refunded') / COUNT(*)"
+- term: delivery time
+  aliases: [shipping time, days to deliver, transit time]
+  definition: delivered_at minus shipped_at in days, only for shipments that have a delivered_at.
+  sql_hint: AVG(delivered_at - shipped_at) FROM shipments WHERE delivered_at IS NOT NULL
+- term: conversion of payments
+  aliases: [payment success rate, failed payments]
+  definition: payments.status is paid, failed or refunded. Payment success rate is paid payments divided by all payments.
+  sql_hint: "COUNT(*) FILTER (WHERE status = 'paid')"
+- term: time periods
+  aliases: [this year, last year, 2025, 2026, monthly, per month, quarter, today, recent]
+  definition: The data covers 2025-01-01 to 2026-11-15. "This year" means 2026, "last year" means 2025. Group by month with DATE_TRUNC('month', order_date). Do not use CURRENT_DATE; the data is a fixed snapshot.
+  sql_hint: DATE_TRUNC('month', o.order_date)
+- term: customer segment
+  aliases: [segment, business customers, enterprise]
+  definition: customers.segment is one of consumer, small_business, enterprise.
+  sql_hint: customers.segment
+- term: category
+  aliases: [category, product category, department]
+  definition: Categories form a two-level tree. Products belong to child categories. To report by top-level category join categories child to categories parent via parent_id.
+  sql_hint: "JOIN categories c ON c.id = p.category_id LEFT JOIN categories pc ON pc.id = c.parent_id"
+- term: private data
+  aliases: [passwords, api keys, staff, secrets, credentials, hashes]
+  definition: Askbase has no access to credentials, API keys or staff accounts. Refuse questions about them.
+  sql_hint: none

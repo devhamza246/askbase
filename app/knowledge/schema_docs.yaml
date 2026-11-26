@@ -1,0 +1,100 @@
+# Human-written descriptions that are retrieved alongside the live column list. Keep them factual:
+# they are what the model sees, and they carry the join paths.
+categories:
+  description: Product categories in a two-level tree. Parent categories (parent_id IS NULL) group child categories.
+  columns:
+    id: Primary key.
+    name: Category name, e.g. Phones, Electronics.
+    parent_id: Parent category id; NULL for top-level categories.
+  relationships:
+    - products.category_id -> categories.id (a product belongs to a child category)
+products:
+  description: The product catalogue. Each product has a selling price and a unit cost, and belongs to a child category.
+  columns:
+    id: Primary key.
+    sku: Stock keeping unit, unique.
+    name: Product name.
+    category_id: Child category the product belongs to.
+    price: Current list price in USD.
+    cost: Unit cost in USD; margin is price minus cost.
+    is_active: FALSE if the product has been discontinued.
+    created_at: Date the product was added to the catalogue.
+  relationships:
+    - products.category_id -> categories.id
+    - order_items.product_id -> products.id
+    - reviews.product_id -> products.id
+customers:
+  description: People and companies that have an account. One row per customer.
+  columns:
+    id: Primary key.
+    full_name: Customer name.
+    email: Customer email, unique.
+    country: Country name in English, e.g. United States.
+    city: City.
+    segment: One of consumer, small_business, enterprise.
+    signup_date: Date the account was created.
+    marketing_opt_in: TRUE if the customer agreed to marketing email.
+  relationships:
+    - orders.customer_id -> customers.id
+    - reviews.customer_id -> customers.id
+orders:
+  description: One row per order placed. total_amount already includes discount and shipping. Orders run from 2025-01-01 to 2026-11-15.
+  columns:
+    id: Primary key.
+    customer_id: The customer who placed the order.
+    order_date: Date the order was placed.
+    status: One of completed, shipped, processing, cancelled, refunded.
+    channel: Where the order was placed - web, mobile_app or marketplace.
+    discount_amount: Discount applied to the whole order in USD.
+    shipping_fee: Shipping charged in USD.
+    total_amount: Order total in USD = items subtotal - discount_amount + shipping_fee.
+  relationships:
+    - orders.customer_id -> customers.id
+    - order_items.order_id -> orders.id
+    - payments.order_id -> orders.id
+    - shipments.order_id -> orders.id
+order_items:
+  description: The line items of an order. One row per product per order. Line revenue is quantity * unit_price.
+  columns:
+    id: Primary key.
+    order_id: The order this line belongs to.
+    product_id: The product bought.
+    quantity: Units bought, 1 or more.
+    unit_price: Price per unit at the time of purchase in USD (may differ from products.price).
+  relationships:
+    - order_items.order_id -> orders.id
+    - order_items.product_id -> products.id
+payments:
+  description: Payment attempts, one per order. Method and outcome of the payment.
+  columns:
+    id: Primary key.
+    order_id: The order being paid.
+    method: One of card, paypal, bank_transfer, gift_card.
+    amount: Amount charged in USD.
+    status: One of paid, failed, refunded.
+    paid_at: Timestamp of the payment attempt.
+  relationships:
+    - payments.order_id -> orders.id
+shipments:
+  description: Shipments for orders that left the warehouse (shipped, completed or refunded orders). Cancelled and processing orders have no shipment.
+  columns:
+    id: Primary key.
+    order_id: The order shipped.
+    carrier: One of DHL, FedEx, UPS, USPS.
+    shipped_at: Date the parcel left the warehouse.
+    delivered_at: Date delivered; NULL while still in transit.
+    status: One of in_transit, delivered, returned.
+  relationships:
+    - shipments.order_id -> orders.id
+reviews:
+  description: Product reviews written by customers who bought the product. Rating is 1 (worst) to 5 (best).
+  columns:
+    id: Primary key.
+    product_id: The product reviewed.
+    customer_id: The reviewing customer.
+    rating: Integer 1 to 5.
+    review_date: Date of the review.
+    comment: Free-text review.
+  relationships:
+    - reviews.product_id -> products.id
+    - reviews.customer_id -> customers.id

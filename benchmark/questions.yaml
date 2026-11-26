@@ -1,0 +1,218 @@
+# 40-question execution-accuracy benchmark. A prediction is correct if its result set equals the gold result set
+# (see benchmark/scoring.py). These questions are NOT the few-shot examples in app/knowledge/examples.yaml.
+# Business definitions come from app/knowledge/glossary.yaml: revenue counts orders with status completed/shipped.
+- id: q01
+  difficulty: easy
+  question: How many customers do we have?
+  sql: SELECT COUNT(*) FROM customers
+- id: q02
+  difficulty: easy
+  question: How many products are currently active?
+  sql: SELECT COUNT(*) FROM products WHERE is_active
+- id: q03
+  difficulty: easy
+  question: What is the average list price of our products?
+  sql: SELECT ROUND(AVG(price), 2) FROM products
+- id: q04
+  difficulty: easy
+  question: How many orders were placed in 2025?
+  sql: SELECT COUNT(*) FROM orders WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01'
+- id: q05
+  difficulty: easy
+  question: How many orders have been cancelled?
+  sql: SELECT COUNT(*) FROM orders WHERE status = 'cancelled'
+- id: q06
+  difficulty: easy
+  question: Which carriers do we ship with?
+  sql: SELECT DISTINCT carrier FROM shipments ORDER BY carrier
+- id: q07
+  difficulty: easy
+  question: How many reviews gave a 5-star rating?
+  sql: SELECT COUNT(*) FROM reviews WHERE rating = 5
+- id: q08
+  difficulty: easy
+  question: How many customers are in each segment?
+  sql: SELECT segment, COUNT(*) FROM customers GROUP BY segment
+- id: q09
+  difficulty: easy
+  question: What is our most expensive product and what does it cost?
+  ordered: true
+  sql: SELECT name, price FROM products ORDER BY price DESC LIMIT 1
+- id: q10
+  difficulty: easy
+  question: How many customers opted in to marketing emails?
+  sql: SELECT COUNT(*) FROM customers WHERE marketing_opt_in
+- id: q11
+  difficulty: easy
+  question: How many orders were placed through the mobile app?
+  sql: SELECT COUNT(*) FROM orders WHERE channel = 'mobile_app'
+- id: q12
+  difficulty: easy
+  question: How many payments failed?
+  sql: SELECT COUNT(*) FROM payments WHERE status = 'failed'
+- id: q13
+  difficulty: medium
+  question: What was our total revenue in 2025?
+  sql: SELECT SUM(total_amount) FROM orders WHERE status IN ('completed','shipped') AND order_date >= '2025-01-01' AND order_date < '2026-01-01'
+- id: q14
+  difficulty: medium
+  question: What is the revenue for each sales channel in 2026?
+  sql: SELECT channel, SUM(total_amount) FROM orders WHERE status IN ('completed','shipped') AND order_date >= '2026-01-01' AND order_date < '2027-01-01' GROUP BY channel
+- id: q15
+  difficulty: medium
+  question: What are our top 5 products by revenue of all time?
+  ordered: true
+  sql: >-
+    SELECT p.name, SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+    WHERE o.status IN ('completed','shipped') GROUP BY p.id, p.name ORDER BY revenue DESC, p.id LIMIT 5
+- id: q16
+  difficulty: medium
+  question: How many customers do we have in each country, most first?
+  ordered: true
+  sql: SELECT country, COUNT(*) AS customers FROM customers GROUP BY country ORDER BY customers DESC, country
+- id: q17
+  difficulty: medium
+  question: What is the average order value across completed and shipped orders?
+  sql: SELECT ROUND(AVG(total_amount), 2) FROM orders WHERE status IN ('completed','shipped')
+- id: q18
+  difficulty: medium
+  question: What is the average review rating for each product category?
+  sql: >-
+    SELECT c.name, ROUND(AVG(r.rating), 2) FROM reviews r JOIN products p ON p.id = r.product_id
+    JOIN categories c ON c.id = p.category_id GROUP BY c.name
+- id: q19
+  difficulty: medium
+  question: How many orders were placed in each month of 2026?
+  sql: >-
+    SELECT DATE_TRUNC('month', order_date)::date AS month, COUNT(*) FROM orders
+    WHERE order_date >= '2026-01-01' AND order_date < '2027-01-01' GROUP BY 1
+- id: q20
+  difficulty: medium
+  question: Which payment method is used most often?
+  ordered: true
+  sql: SELECT method, COUNT(*) AS payments FROM payments GROUP BY method ORDER BY payments DESC LIMIT 1
+- id: q21
+  difficulty: medium
+  question: What is the average delivery time in days for each carrier?
+  sql: SELECT carrier, ROUND(AVG(delivered_at - shipped_at), 1) FROM shipments WHERE delivered_at IS NOT NULL GROUP BY carrier
+- id: q22
+  difficulty: medium
+  question: How many customers have placed at least two orders that were not cancelled?
+  sql: >-
+    SELECT COUNT(*) FROM (SELECT customer_id FROM orders WHERE status <> 'cancelled' GROUP BY customer_id HAVING COUNT(*) >= 2) t
+- id: q23
+  difficulty: medium
+  question: What percentage of all orders were refunded?
+  sql: SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'refunded') / COUNT(*), 2) FROM orders
+- id: q24
+  difficulty: medium
+  question: Which 3 customer cities generate the most revenue?
+  ordered: true
+  sql: >-
+    SELECT c.city, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('completed','shipped') GROUP BY c.city ORDER BY revenue DESC, c.city LIMIT 3
+- id: q25
+  difficulty: medium
+  question: How many units have we sold in each top-level category?
+  sql: >-
+    SELECT pc.name, SUM(oi.quantity) FROM order_items oi JOIN orders o ON o.id = oi.order_id
+    JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id JOIN categories pc ON pc.id = c.parent_id
+    WHERE o.status IN ('completed','shipped') GROUP BY pc.name
+- id: q26
+  difficulty: medium
+  question: What was our revenue in November 2026?
+  sql: SELECT SUM(total_amount) FROM orders WHERE status IN ('completed','shipped') AND order_date >= '2026-11-01' AND order_date < '2026-12-01'
+- id: q27
+  difficulty: medium
+  question: How many different products have received at least one review?
+  sql: SELECT COUNT(DISTINCT product_id) FROM reviews
+- id: q28
+  difficulty: medium
+  question: How many orders has each customer segment placed?
+  sql: SELECT c.segment, COUNT(*) FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.segment
+- id: q29
+  difficulty: hard
+  question: What was the 2025 revenue by top-level category?
+  sql: >-
+    SELECT pc.name, SUM(oi.quantity * oi.unit_price) FROM order_items oi JOIN orders o ON o.id = oi.order_id
+    JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id JOIN categories pc ON pc.id = c.parent_id
+    WHERE o.status IN ('completed','shipped') AND o.order_date >= '2025-01-01' AND o.order_date < '2026-01-01' GROUP BY pc.name
+- id: q30
+  difficulty: hard
+  question: Which 3 categories have the highest gross margin?
+  ordered: true
+  sql: >-
+    SELECT c.name, SUM((oi.unit_price - p.cost) * oi.quantity) AS margin FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id
+    WHERE o.status IN ('completed','shipped') GROUP BY c.name ORDER BY margin DESC, c.name LIMIT 3
+- id: q31
+  difficulty: hard
+  question: What was the month-over-month revenue growth in percent for each month of 2026?
+  sql: >-
+    SELECT month, ROUND(100.0 * (rev - prev) / prev, 1) FROM (
+      SELECT month, rev, LAG(rev) OVER (ORDER BY month) AS prev FROM (
+        SELECT DATE_TRUNC('month', order_date)::date AS month, SUM(total_amount) AS rev FROM orders
+        WHERE status IN ('completed','shipped') AND order_date >= '2025-12-01' AND order_date < '2027-01-01' GROUP BY 1) m) t
+    WHERE month >= '2026-01-01' AND prev IS NOT NULL
+- id: q32
+  difficulty: hard
+  question: How many customers placed orders in both 2025 and 2026?
+  sql: >-
+    SELECT COUNT(*) FROM (SELECT customer_id FROM orders GROUP BY customer_id
+    HAVING MIN(order_date) < '2026-01-01' AND MAX(order_date) >= '2026-01-01'
+       AND COUNT(*) FILTER (WHERE order_date < '2026-01-01') > 0 AND COUNT(*) FILTER (WHERE order_date >= '2026-01-01') > 0) t
+- id: q33
+  difficulty: hard
+  question: What percentage of revenue comes from enterprise customers?
+  sql: >-
+    SELECT ROUND(100.0 * SUM(o.total_amount) FILTER (WHERE c.segment = 'enterprise') / SUM(o.total_amount), 2)
+    FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status IN ('completed','shipped')
+- id: q34
+  difficulty: hard
+  question: What are our top 3 products by gross margin in 2026?
+  ordered: true
+  sql: >-
+    SELECT p.name, SUM((oi.unit_price - p.cost) * oi.quantity) AS margin FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+    WHERE o.status IN ('completed','shipped') AND o.order_date >= '2026-01-01' AND o.order_date < '2027-01-01'
+    GROUP BY p.id, p.name ORDER BY margin DESC, p.id LIMIT 3
+- id: q35
+  difficulty: hard
+  question: On average, how many days pass between a customer signing up and placing their first order?
+  sql: >-
+    SELECT ROUND(AVG(first_order - signup_date), 1) FROM (
+      SELECT c.signup_date, MIN(o.order_date) AS first_order FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.signup_date) t
+- id: q36
+  difficulty: hard
+  question: Which customers have generated more than 3000 dollars of revenue, highest first?
+  ordered: true
+  sql: >-
+    SELECT c.full_name, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('completed','shipped') GROUP BY c.id, c.full_name HAVING SUM(o.total_amount) > 3000 ORDER BY revenue DESC, c.id
+- id: q37
+  difficulty: hard
+  question: For each sales channel, what percentage of orders were cancelled or refunded?
+  sql: >-
+    SELECT channel, ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('cancelled','refunded')) / COUNT(*), 1)
+    FROM orders GROUP BY channel
+- id: q38
+  difficulty: hard
+  question: Which product has the highest average rating among products with at least 10 reviews?
+  ordered: true
+  sql: >-
+    SELECT p.name, ROUND(AVG(r.rating), 2) AS avg_rating FROM reviews r JOIN products p ON p.id = r.product_id
+    GROUP BY p.id, p.name HAVING COUNT(*) >= 10 ORDER BY avg_rating DESC, p.id LIMIT 1
+- id: q39
+  difficulty: hard
+  question: What percentage of customers with at least one non-cancelled order have placed two or more?
+  sql: >-
+    SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE n >= 2) / COUNT(*), 1) FROM (
+      SELECT customer_id, COUNT(*) AS n FROM orders WHERE status <> 'cancelled' GROUP BY customer_id) t
+- id: q40
+  difficulty: hard
+  question: For each month of 2025, how many customers signed up, and what is the running total of signups?
+  sql: >-
+    SELECT month, signups, SUM(signups) OVER (ORDER BY month) AS running_total FROM (
+      SELECT DATE_TRUNC('month', signup_date)::date AS month, COUNT(*) AS signups FROM customers
+      WHERE signup_date >= '2025-01-01' AND signup_date < '2026-01-01' GROUP BY 1) t

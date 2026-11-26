@@ -1,0 +1,43 @@
+# Solved question/SQL pairs retrieved as few-shot examples. These are deliberately NOT the benchmark questions.
+- question: How many customers signed up in 2025?
+  sql: SELECT COUNT(*) AS customers FROM customers WHERE signup_date >= '2025-01-01' AND signup_date < '2026-01-01'
+- question: What are the order counts by status?
+  sql: SELECT status, COUNT(*) AS orders FROM orders GROUP BY status ORDER BY orders DESC
+- question: Which five products have the highest list price?
+  sql: SELECT name, price FROM products ORDER BY price DESC LIMIT 5
+- question: What was revenue in March 2026?
+  sql: >-
+    SELECT SUM(total_amount) AS revenue FROM orders
+    WHERE status IN ('completed','shipped') AND order_date >= '2026-03-01' AND order_date < '2026-04-01'
+- question: Revenue by sales channel for 2025
+  sql: >-
+    SELECT channel, SUM(total_amount) AS revenue FROM orders
+    WHERE status IN ('completed','shipped') AND order_date >= '2025-01-01' AND order_date < '2026-01-01'
+    GROUP BY channel ORDER BY revenue DESC
+- question: Which cities have the most customers?
+  sql: SELECT city, country, COUNT(*) AS customers FROM customers GROUP BY city, country ORDER BY customers DESC LIMIT 10
+- question: Average rating for each product category
+  sql: >-
+    SELECT c.name AS category, ROUND(AVG(r.rating), 2) AS avg_rating
+    FROM reviews r JOIN products p ON p.id = r.product_id JOIN categories c ON c.id = p.category_id
+    GROUP BY c.name ORDER BY avg_rating DESC
+- question: Number of orders per month in 2026
+  sql: >-
+    SELECT DATE_TRUNC('month', order_date)::date AS month, COUNT(*) AS orders FROM orders
+    WHERE order_date >= '2026-01-01' AND order_date < '2027-01-01' GROUP BY 1 ORDER BY 1
+- question: Which customers have placed more than 5 orders?
+  sql: >-
+    SELECT c.full_name, COUNT(*) AS orders FROM orders o JOIN customers c ON c.id = o.customer_id
+    GROUP BY c.id, c.full_name HAVING COUNT(*) > 5 ORDER BY orders DESC
+- question: Share of payments by method
+  sql: >-
+    SELECT method, COUNT(*) AS payments, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct
+    FROM payments GROUP BY method ORDER BY payments DESC
+- question: Products that have never been ordered
+  sql: >-
+    SELECT p.name FROM products p LEFT JOIN order_items oi ON oi.product_id = p.id
+    WHERE oi.id IS NULL ORDER BY p.name
+- question: Average days from shipment to delivery per carrier
+  sql: >-
+    SELECT carrier, ROUND(AVG(delivered_at - shipped_at), 1) AS avg_days FROM shipments
+    WHERE delivered_at IS NOT NULL GROUP BY carrier ORDER BY avg_days

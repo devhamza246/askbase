@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: testadmin
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[ui,dev]"
+      - run: pytest -q
+
+  # Runs the 40-question benchmark from the recorded model responses (no API key, free) and gates on accuracy.
+  # Skipped until benchmark/cassette.jsonl has been recorded and committed.
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: testadmin
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      ASKBASE_ADMIN_URL: postgresql://postgres:testadmin@127.0.0.1:55432/postgres
+      ASKBASE_RO_URL: postgresql://askbase_ro:ro-ci-password@127.0.0.1:55432/postgres
+      ASKBASE_RO_PASSWORD: ro-ci-password
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for a recorded cassette
+        id: cassette
+        run: |
+          if [ -s benchmark/cassette.jsonl ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::benchmark/cassette.jsonl is not committed yet: skipping the replayed benchmark"; fi
+      - uses: actions/setup-python@v5
+        if: steps.cassette.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+      - name: Replay the benchmark and gate on regressions
+        if: steps.cassette.outputs.present == 'true'
+        run: |
+          pip install -e . "git+https://github.com/devhamza246/gauge.git"
+          python -m app.bootstrap
+          python -m benchmark.run --mode replay --gauge-out results/gauge-import.json
+          gauge import results/gauge-import.json --out results/run.json
+          python - <<'EOF'
+          import json, sys
+          s = json.load(open("benchmark/results/latest.json"))["summary"]
+          print(f"execution accuracy {s['execution_accuracy']:.1%} ({s['correct']}/{s['total']})")
+          sys.exit(0 if s["execution_accuracy"] >= 0.85 else 1)
+          EOF
+          if [ -f benchmark/gauge-baseline.json ]; then gauge compare --results results/run.json --baseline benchmark/gauge-baseline.json; fi

@@ -1,0 +1,77 @@
+# Askbase: Postgres (with pgvector) + API + Streamlit UI.
+#   cp .env.example .env     (set the passwords; ANTHROPIC_API_KEY enables answering)
+#   docker compose --env-file .env up -d --build
+name: askbase
+
+services:
+  postgres:
+    container_name: askbase-postgres
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: askbase_admin
+      POSTGRES_PASSWORD: ${ASKBASE_ADMIN_PASSWORD:?set ASKBASE_ADMIN_PASSWORD in .env}
+      POSTGRES_DB: askbase
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U askbase_admin -d askbase"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [default]
+
+  api:
+    container_name: askbase-api
+    build: .
+    restart: unless-stopped
+    environment:
+      # the admin URL is used by the bootstrap step only; the API process queries as the read-only roles
+      ASKBASE_ADMIN_URL: postgresql://askbase_admin:${ASKBASE_ADMIN_PASSWORD}@postgres:5432/askbase
+      ASKBASE_RO_URL: postgresql://askbase_ro:${ASKBASE_RO_PASSWORD}@postgres:5432/askbase
+      ASKBASE_RO_PASSWORD: ${ASKBASE_RO_PASSWORD:?set ASKBASE_RO_PASSWORD in .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ASKBASE_SQL_MODEL: ${ASKBASE_SQL_MODEL:-claude-sonnet-5-5}
+      ASKBASE_FAST_MODEL: ${ASKBASE_FAST_MODEL:-claude-haiku-5-5}
+      ASKBASE_DAILY_SPEND_CAP_USD: ${ASKBASE_DAILY_SPEND_CAP_USD:-2}
+      ASKBASE_RATE_LIMIT_PER_MIN: ${ASKBASE_RATE_LIMIT_PER_MIN:-12}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    ports:
+      - "127.0.0.1:${ASKBASE_API_PORT:-8812}:8000"
+    networks: [default, ingress_default]
+
+  ui:
+    container_name: askbase-ui
+    build: .
+    restart: unless-stopped
+    command: ["streamlit", "run", "/app/ui/app.py", "--server.port=8501", "--server.address=0.0.0.0",
+              "--server.headless=true", "--client.toolbarMode=minimal", "--browser.gatherUsageStats=false",
+              "--server.fileWatcherType=none"]
+    environment:
+      ASKBASE_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "127.0.0.1:${ASKBASE_UI_PORT:-8813}:8501"
+    networks: [default, ingress_default]
+
+volumes:
+  pgdata:
+
+networks:
+  ingress_default:
+    external: true
