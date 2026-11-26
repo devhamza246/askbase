@@ -31,7 +31,7 @@ _JS = r"""
 
   const css = D.createElement("style"); css.id = "tour-css";
   css.textContent = `
-  #tour-root{position:fixed;inset:0;z-index:999990;pointer-events:none;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+  #tour-root{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
   #tour-block{position:fixed;inset:0;pointer-events:auto}
   #tour-hole{position:fixed;border-radius:10px;box-shadow:0 0 0 9999px rgba(10,14,25,.62),0 0 0 3px #6ee7b7;transition:all .25s ease;pointer-events:none}
   #tour-card{position:fixed;width:min(340px,calc(100vw - 24px));background:#fff;color:#111827;border-radius:14px;padding:16px 16px 12px;
@@ -80,6 +80,7 @@ _JS = r"""
     bBack.style.visibility = i === 0 ? "hidden" : "visible";
     bNext.textContent = i === cfg.steps.length - 1 ? "Done" : "Next";
     const vw = P.innerWidth, vh = P.innerHeight, cw = card.offsetWidth || 340, ch = card.offsetHeight || 160;
+    root.querySelector("#tour-block").style.background = "transparent";
     if (el) {
       el.scrollIntoView({block: "center", behavior: "auto"});
       const r = el.getBoundingClientRect(), pad = 6;
@@ -91,9 +92,13 @@ _JS = r"""
       let cy = r.bottom + 14; if (cy + ch > vh - 8) cy = Math.max(8, r.top - ch - 14);
       if (cy < 8 || cy + ch > vh - 8) cy = Math.max(8, vh - ch - 12);
       let cx = Math.min(Math.max(12, r.left), vw - cw - 12);
+      if (r.width < vw * 0.4 && r.right + cw + 24 < vw) {  // a narrow target (e.g. in the sidebar): put the card beside it
+        cx = r.right + 20; cy = Math.min(Math.max(8, r.top + r.height / 2 - ch / 2), vh - ch - 8);
+      }
       card.style.top = cy + "px"; card.style.left = cx + "px";
     } else {
       hole.style.display = "none";
+      root.querySelector("#tour-block").style.background = "rgba(10,14,25,.62)";
       card.style.top = Math.max(12, (vh - ch) / 2) + "px"; card.style.left = Math.max(12, (vw - cw) / 2) + "px";
     }
     bNext.focus();
