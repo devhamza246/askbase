@@ -62,3 +62,21 @@ def results_match(pred_rows: list[list], gold_rows: list[list], ordered: bool) -
         return True
     # same values, different column order
     return sorted(_row_key(tuple(sorted(r, key=_key))) for r in pred) == sorted(_row_key(tuple(sorted(r, key=_key))) for r in gold)
+
+
+def results_match_lenient(pred_rows: list[list], gold_rows: list[list], ordered: bool) -> bool:
+    """Looser second metric: also correct if the prediction has MORE columns than the gold and some selection of them,
+    in some order, equals the gold result. It forgives helpful extra context (a count next to a name) but nothing else:
+    wrong rows, wrong values, truncated lists and missing columns all still fail."""
+    from itertools import permutations
+    if results_match(pred_rows, gold_rows, ordered):
+        return True
+    if not pred_rows or not gold_rows or len(pred_rows) != len(gold_rows):
+        return False
+    pc, gc = len(pred_rows[0]), len(gold_rows[0])
+    if pc <= gc or pc > 8:
+        return False
+    for cols in permutations(range(pc), gc):
+        if results_match([[r[i] for i in cols] for r in pred_rows], gold_rows, ordered):
+            return True
+    return False

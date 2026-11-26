@@ -60,3 +60,13 @@ def test_scoring_rounds_floats_and_normalises_types():
     assert results_match([["2026-01-01"]], [["2026-01-01"]], False)
     assert not results_match([[23.0]], [[24.0]], False)
     assert results_match([["Phones"]], [["phones "]], False)
+
+
+def test_lenient_scoring_forgives_extra_columns_only():
+    from benchmark.scoring import results_match_lenient as lenient
+    assert lenient([["UPS", 730], ["DHL", 649]], [["DHL"], ["UPS"]], False)           # an extra count column
+    assert lenient([[8, "Studio 16", 58444.2]], [["Studio 16", 58444.2]], False)      # an extra id column
+    assert not lenient([["UPS", 730]], [["DHL"]], False)                              # wrong value
+    assert not lenient([["UPS", 730], ["DHL", 649]], [["UPS"]], False)                # truncated or extra rows
+    assert not lenient([["x"]], [["x", 1]], False)                                    # a missing column is never forgiven
+    assert lenient([["a", 1]], [["a", 1]], True)                                      # exact still passes
