@@ -120,6 +120,21 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
+if not st.session_state.messages:
+    c1, c2, c3 = st.columns(3)
+    c1.markdown("#### 1. Ask
+In plain English. Follow-up questions remember the conversation, so you can say *and for Germany?*")
+    c2.markdown("#### 2. See the SQL
+Every answer shows the exact query next to a table and an automatic chart, so you can check it.")
+    c3.markdown("#### 3. Stay safe
+Each query is parsed and validated, then run as a database role that cannot write. "
+                "Try an attack from the sidebar.")
+    st.markdown("**Sample data:** an online shop with customers, orders, order lines, products, categories, payments, "
+                "shipments and reviews (January 2025 to mid-November 2026).")
+    if info.get("llm_configured") is False:
+        st.info("This server has no language model configured yet, so questions are not answered. "
+                "The SQL guardrail playground in the sidebar works and shows what would be stopped.")
+
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         if m["role"] == "user":
