@@ -7,8 +7,10 @@ validated on its syntax tree, rewritten with a forced `LIMIT`, regenerated, and 
 physically cannot write. Ask a business question and you get an explained answer, the SQL, a table and an automatic chart.
 Ask it to `DROP TABLE orders` and you get a refusal that says exactly why.
 
-**Live:** https://askbase.hamzacodes.dev (the SQL-guardrail playground and attack buttons work without any model;
-answering questions needs the server's API key to be configured) · sample database: an 8-table e-commerce shop.
+**Live:** https://askbase.hamzacodes.dev. The public demo runs in **recorded-answer mode**: the suggested questions and attacks were run by
+the real model (Claude Sonnet 5.5 and Haiku 5.5) and recorded, and the demo replays them against the live database. It never calls a paid
+API, so it cannot spend anyone's credits; other questions get a polite "not recorded" message. The SQL-guardrail playground accepts any SQL.
+Sample database: an 8-table e-commerce shop.
 
 ## How it works
 
@@ -77,19 +79,39 @@ against the documented business definitions. A prediction is correct when its **
 (column names and, unless the question is a top-N, row order are ignored; non-integers compare at one decimal). The
 questions are deliberately different from the solved examples the model sees.
 
-**Status: the pipeline has not been scored yet** because it needs an Anthropic API key. What is verified without one:
-all 40 gold queries pass the guard, run, are deterministic and have non-trivial answers; the scoring rules are
-unit-tested; the harness runs against the real database. To produce the headline number:
+### Run 1 (real model: Claude Sonnet 5.5 for SQL, Haiku 5.5 for summaries; no tuning)
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-python -m benchmark.run --gauge-out results/gauge.json   # records benchmark/cassette.jsonl, prints accuracy and latency
-git add benchmark/cassette.jsonl                         # makes the result replayable offline (and runnable in CI)
-```
+| | Result |
+|---|---|
+| **Execution accuracy, strict (headline)** | **28/40 = 70.0%**: easy 10/12, medium 14/16, hard 4/12. **Below the 85% target** |
+| Execution accuracy, lenient (extra columns forgiven) | 36/40 = 90.0%: easy 12/12, medium 16/16, hard 8/12. Added after seeing the results, so a secondary number, not a pass |
+| Latency per answer | median 3.2 s, p95 5.1 s; every answered question under 8 s (target met) |
+| Cost | $0.25 for the run, about 0.6 cents per question |
+| Self-repair | 0 of 39 answers needed it |
+| Coverage | 39 of 40 questions ran: the account's API usage limit was reached before q40 (counted as a failure) |
 
-Targets, to be confirmed or refuted by that run: at least 85% execution accuracy, under 8 s per answer, 0 writes.
-Latency, cost per answer and repair rate are reported by the same run. Results can be tracked per commit with
-[Gauge](https://github.com/devhamza246/gauge) (`gauge import`).
+Raw results: [`benchmark/run1-results.json`](benchmark/run1-results.json), re-scorable offline with `python -m benchmark.rescore` (it
+re-executes the saved SQL; no model calls). Model responses are in [`benchmark/cassette.jsonl`](benchmark/cassette.jsonl).
+
+**Why the 11 misses (the failure cases, not hidden):**
+
+| Cause | Questions | Fix planned for run 2 |
+|---|---|---|
+| The model added a helpful extra column (a count next to a name, an id, a country). The answer is right; the strict metric marks it wrong | q06, q09, q18, q24, q31, q34, q38, q39 (8) | Prompt: return only the columns the question asks for |
+| The prompt's default `LIMIT 100` truncated a list of 235 customers: a **real bug** in my prompt | q36 | Prompt: no LIMIT for "which X have..." lists; the system caps at 500 anyway |
+| The question is ambiguous (sub-category or top-level category); the model chose a defensible reading | q30 | Clarify the question text |
+| Scorer artifact: a 2-decimal percentage double-rounds against a 1-decimal gold | q37 | Compare at the gold's precision |
+| Not run: API usage limit reached | q40 | Re-run |
+
+Run 2 will change the prompts and benchmark text after seeing run 1's errors, so it will be reported as **in-sample tuning** next to run 1,
+as Docsift does, never as a clean score. The prompt fix is deferred because it changes every recorded request, and the public demo replays
+the recordings; the demo and the cassette are re-recorded together when the API limit resets.
+
+### Adversarial run against the real model
+
+The 4 attack prompts in the demo (a DROP, a DELETE, a credentials request and `pg_sleep`) were **refused by the model itself** before any SQL
+was written. The full 20-prompt live run hit the API usage limit and did not complete, so it is not claimed; the 20-prompt **compromised-model**
+run above (a jailbroken model that emits the attack SQL every time) is the measured guarantee.
 
 ## Run it
 
@@ -109,8 +131,8 @@ API: `POST /api/ask {question, history}` · `POST /api/validate {sql}` (verdict 
 
 ## Known limits
 
-- **Answering needs a model.** Without `ANTHROPIC_API_KEY` the app runs and the guardrails can be demonstrated, but
-  questions return a clear "no model configured" message.
+- **Answering needs a model.** The public demo replays recorded answers (`ASKBASE_LLM_MODE=replay`). Run it yourself with
+  `ANTHROPIC_API_KEY` for any question; with neither, the guardrail playground still works.
 - **Single database, single schema, no per-user permissions.** One read-only role for everyone (out of scope for v1).
 - **The embedder is lexical.** It is enough for an 8-table schema with a glossary; a larger schema would want a real
   embedding model.
