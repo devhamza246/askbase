@@ -1,0 +1,626 @@
+{
+  "summary": {
+    "total": 20,
+    "correct": 19,
+    "execution_accuracy": 0.95,
+    "by_difficulty": {
+      "easy": {
+        "correct": 6,
+        "total": 6
+      },
+      "medium": {
+        "correct": 8,
+        "total": 8
+      },
+      "hard": {
+        "correct": 5,
+        "total": 6
+      }
+    },
+    "repaired": 0,
+    "latency_p50_ms": 2954.5,
+    "latency_p95_ms": 4041.5,
+    "latency_mean_ms": 3197.805,
+    "under_8s": 20,
+    "cost_usd": 0.12952,
+    "models": {
+      "sql": "claude-sonnet-5-5",
+      "fast": "claude-haiku-5-5"
+    }
+  },
+  "rows": [
+    {
+      "id": "h01",
+      "difficulty": "easy",
+      "question": "How many shipments are currently in transit?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(*) AS in_transit_shipments FROM shipments WHERE status = 'in_transit'",
+      "executed_sql": "SELECT COUNT(*) AS in_transit_shipments FROM shipments WHERE status = 'in_transit' LIMIT 500",
+      "gold_sql": "SELECT COUNT(*) FROM shipments WHERE status = 'in_transit'",
+      "reason": "",
+      "latency_ms": 2741.2,
+      "cost_usd": 0.004838,
+      "input_tokens": 2207,
+      "output_tokens": 99,
+      "pred_rows": [
+        [
+          19
+        ]
+      ],
+      "gold_rows": [
+        [
+          19
+        ]
+      ]
+    },
+    {
+      "id": "h02",
+      "difficulty": "easy",
+      "question": "What is our cheapest active product and what does it cost?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT name, price FROM products WHERE is_active = TRUE ORDER BY price ASC LIMIT 1",
+      "executed_sql": "SELECT name, price FROM products WHERE is_active = TRUE ORDER BY price ASC LIMIT 1",
+      "gold_sql": "SELECT name, price FROM products WHERE is_active ORDER BY price, id LIMIT 1",
+      "reason": "",
+      "latency_ms": 3165.0,
+      "cost_usd": 0.005946,
+      "input_tokens": 2727,
+      "output_tokens": 117,
+      "pred_rows": [
+        [
+          "Frame Bag",
+          18.75
+        ]
+      ],
+      "gold_rows": [
+        [
+          "Frame Bag",
+          18.75
+        ]
+      ]
+    },
+    {
+      "id": "h03",
+      "difficulty": "easy",
+      "question": "How many customers are from Germany?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(*) AS customers FROM customers WHERE country = 'Germany'",
+      "executed_sql": "SELECT COUNT(*) AS customers FROM customers WHERE country = 'Germany' LIMIT 500",
+      "gold_sql": "SELECT COUNT(*) FROM customers WHERE country = 'Germany'",
+      "reason": "",
+      "latency_ms": 2410.2,
+      "cost_usd": 0.005749,
+      "input_tokens": 2733,
+      "output_tokens": 80,
+      "pred_rows": [
+        [
+          43
+        ]
+      ],
+      "gold_rows": [
+        [
+          43
+        ]
+      ]
+    },
+    {
+      "id": "h04",
+      "difficulty": "easy",
+      "question": "How many reviews have a rating of 1 or 2?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(*) AS low_rating_reviews FROM reviews WHERE rating IN (1, 2)",
+      "executed_sql": "SELECT COUNT(*) AS low_rating_reviews FROM reviews WHERE rating IN (1, 2) LIMIT 500",
+      "gold_sql": "SELECT COUNT(*) FROM reviews WHERE rating <= 2",
+      "reason": "",
+      "latency_ms": 2398.7,
+      "cost_usd": 0.005603,
+      "input_tokens": 2714,
+      "output_tokens": 81,
+      "pred_rows": [
+        [
+          147
+        ]
+      ],
+      "gold_rows": [
+        [
+          147
+        ]
+      ]
+    },
+    {
+      "id": "h05",
+      "difficulty": "easy",
+      "question": "Which payment methods do customers use?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT DISTINCT method FROM payments ORDER BY method",
+      "executed_sql": "SELECT DISTINCT method FROM payments ORDER BY method LIMIT 500",
+      "gold_sql": "SELECT DISTINCT method FROM payments ORDER BY method",
+      "reason": "",
+      "latency_ms": 2947.2,
+      "cost_usd": 0.005713,
+      "input_tokens": 2731,
+      "output_tokens": 96,
+      "pred_rows": [
+        [
+          "bank_transfer"
+        ],
+        [
+          "card"
+        ],
+        [
+          "gift_card"
+        ],
+        [
+          "paypal"
+        ]
+      ],
+      "gold_rows": [
+        [
+          "bank_transfer"
+        ],
+        [
+          "card"
+        ],
+        [
+          "gift_card"
+        ],
+        [
+          "paypal"
+        ]
+      ]
+    },
+    {
+      "id": "h06",
+      "difficulty": "easy",
+      "question": "How many orders were placed through the web channel in 2026?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND order_date >= '2026-01-01' AND order_date < '2027-01-01'",
+      "executed_sql": "SELECT COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND order_date >= '2026-01-01' AND order_date < '2027-01-01' LIMIT 500",
+      "gold_sql": "SELECT COUNT(*) FROM orders WHERE channel = 'web' AND order_date >= '2026-01-01' AND order_date < '2027-01-01'",
+      "reason": "",
+      "latency_ms": 3184.1,
+      "cost_usd": 0.006259,
+      "input_tokens": 2858,
+      "output_tokens": 120,
+      "pred_rows": [
+        [
+          946
+        ]
+      ],
+      "gold_rows": [
+        [
+          946
+        ]
+      ]
+    },
+    {
+      "id": "h07",
+      "difficulty": "medium",
+      "question": "How many units of the Trail Runner have we sold?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT SUM(oi.quantity) AS units_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id WHERE o.status IN ('completed','shipped') AND p.name ILIKE '%Trail Runner%'",
+      "executed_sql": "SELECT SUM(oi.quantity) AS units_sold FROM order_items AS oi JOIN orders AS o ON o.id = oi.order_id JOIN products AS p ON p.id = oi.product_id WHERE o.status IN ('completed', 'shipped') AND p.name ILIKE '%Trail Runner%' LIMIT 500",
+      "gold_sql": "SELECT SUM(oi.quantity) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id WHERE p.name = 'Trail Runner' AND o.status IN ('completed','shipped')",
+      "reason": "",
+      "latency_ms": 4018.8,
+      "cost_usd": 0.006979,
+      "input_tokens": 2628,
+      "output_tokens": 254,
+      "pred_rows": [
+        [
+          123
+        ]
+      ],
+      "gold_rows": [
+        [
+          123
+        ]
+      ]
+    },
+    {
+      "id": "h08",
+      "difficulty": "medium",
+      "question": "Which customer country brings in the most revenue?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT c.country, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status IN ('completed','shipped') GROUP BY c.country ORDER BY revenue DESC LIMIT 1",
+      "executed_sql": "SELECT c.country, SUM(o.total_amount) AS revenue FROM orders AS o JOIN customers AS c ON c.id = o.customer_id WHERE o.status IN ('completed', 'shipped') GROUP BY c.country ORDER BY revenue DESC LIMIT 1",
+      "gold_sql": "SELECT c.country, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status IN ('completed','shipped') GROUP BY c.country ORDER BY revenue DESC LIMIT 1",
+      "reason": "",
+      "latency_ms": 2954.5,
+      "cost_usd": 0.00637,
+      "input_tokens": 2638,
+      "output_tokens": 192,
+      "pred_rows": [
+        [
+          "United States",
+          673579.04
+        ]
+      ],
+      "gold_rows": [
+        [
+          "United States",
+          673579.04
+        ]
+      ]
+    },
+    {
+      "id": "h09",
+      "difficulty": "medium",
+      "question": "What is the average discount on orders that had a discount?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT ROUND(AVG(discount_amount), 2) AS avg_discount FROM orders WHERE discount_amount > 0",
+      "executed_sql": "SELECT ROUND(CAST(AVG(discount_amount) AS DECIMAL), 2) AS avg_discount FROM orders WHERE discount_amount > 0 LIMIT 500",
+      "gold_sql": "SELECT ROUND(AVG(discount_amount), 2) FROM orders WHERE discount_amount > 0",
+      "reason": "",
+      "latency_ms": 2835.4,
+      "cost_usd": 0.006118,
+      "input_tokens": 2847,
+      "output_tokens": 107,
+      "pred_rows": [
+        [
+          75.18
+        ]
+      ],
+      "gold_rows": [
+        [
+          75.18
+        ]
+      ]
+    },
+    {
+      "id": "h10",
+      "difficulty": "medium",
+      "question": "How many orders were placed in each quarter of 2025?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT DATE_TRUNC('quarter', order_date)::date AS quarter_start, COUNT(*) AS orders FROM orders WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY DATE_TRUNC('quarter', order_date) ORDER BY quarter_start",
+      "executed_sql": "SELECT CAST(DATE_TRUNC('QUARTER', order_date) AS DATE) AS quarter_start, COUNT(*) AS orders FROM orders WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY DATE_TRUNC('QUARTER', order_date) ORDER BY quarter_start LIMIT 500",
+      "gold_sql": "SELECT DATE_TRUNC('quarter', order_date)::date AS quarter, COUNT(*) FROM orders WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY 1",
+      "reason": "",
+      "latency_ms": 3230.5,
+      "cost_usd": 0.006794,
+      "input_tokens": 2936,
+      "output_tokens": 247,
+      "pred_rows": [
+        [
+          "2025-01-01",
+          46
+        ],
+        [
+          "2025-04-01",
+          126
+        ],
+        [
+          "2025-07-01",
+          230
+        ],
+        [
+          "2025-10-01",
+          288
+        ]
+      ],
+      "gold_rows": [
+        [
+          "2025-07-01",
+          230
+        ],
+        [
+          "2025-01-01",
+          46
+        ],
+        [
+          "2025-04-01",
+          126
+        ],
+        [
+          "2025-10-01",
+          288
+        ]
+      ]
+    },
+    {
+      "id": "h11",
+      "difficulty": "medium",
+      "question": "What percentage of payments failed?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'failed') / COUNT(*), 1) AS failed_pct FROM payments",
+      "executed_sql": "SELECT ROUND(CAST(100.0 * COUNT(*) FILTER(WHERE status = 'failed') / COUNT(*) AS DECIMAL), 1) AS failed_pct FROM payments LIMIT 500",
+      "gold_sql": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'failed') / COUNT(*), 1) FROM payments",
+      "reason": "",
+      "latency_ms": 2556.8,
+      "cost_usd": 0.00624,
+      "input_tokens": 2812,
+      "output_tokens": 122,
+      "pred_rows": [
+        [
+          4.1
+        ]
+      ],
+      "gold_rows": [
+        [
+          4.1
+        ]
+      ]
+    },
+    {
+      "id": "h12",
+      "difficulty": "medium",
+      "question": "Which customer has placed the most orders?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT c.full_name AS customer, COUNT(*) AS orders FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.id, c.full_name ORDER BY orders DESC LIMIT 1",
+      "executed_sql": "SELECT c.full_name AS customer, COUNT(*) AS orders FROM orders AS o JOIN customers AS c ON c.id = o.customer_id GROUP BY c.id, c.full_name ORDER BY orders DESC LIMIT 1",
+      "gold_sql": "SELECT c.full_name, COUNT(*) AS orders FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.id, c.full_name ORDER BY orders DESC, c.id LIMIT 1",
+      "reason": "",
+      "latency_ms": 4857.6,
+      "cost_usd": 0.008297,
+      "input_tokens": 2636,
+      "output_tokens": 373,
+      "pred_rows": [
+        [
+          "Elena Rossi",
+          14
+        ]
+      ],
+      "gold_rows": [
+        [
+          "Elena Rossi",
+          14
+        ]
+      ]
+    },
+    {
+      "id": "h13",
+      "difficulty": "medium",
+      "question": "What is the average review rating for products in the Phones category?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT ROUND(AVG(r.rating), 2) AS avg_rating FROM reviews r JOIN products p ON p.id = r.product_id JOIN categories c ON c.id = p.category_id WHERE c.name = 'Phones'",
+      "executed_sql": "SELECT ROUND(CAST(AVG(r.rating) AS DECIMAL), 2) AS avg_rating FROM reviews AS r JOIN products AS p ON p.id = r.product_id JOIN categories AS c ON c.id = p.category_id WHERE c.name = 'Phones' LIMIT 500",
+      "gold_sql": "SELECT ROUND(AVG(r.rating), 2) FROM reviews r JOIN products p ON p.id = r.product_id JOIN categories c ON c.id = p.category_id WHERE c.name = 'Phones'",
+      "reason": "",
+      "latency_ms": 3211.3,
+      "cost_usd": 0.006479,
+      "input_tokens": 2479,
+      "output_tokens": 226,
+      "pred_rows": [
+        [
+          3.99
+        ]
+      ],
+      "gold_rows": [
+        [
+          3.99
+        ]
+      ]
+    },
+    {
+      "id": "h14",
+      "difficulty": "medium",
+      "question": "How many different customers placed an order in November 2026?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(DISTINCT customer_id) AS customers FROM orders WHERE order_date >= '2026-11-01' AND order_date < '2026-12-01'",
+      "executed_sql": "SELECT COUNT(DISTINCT customer_id) AS customers FROM orders WHERE order_date >= '2026-11-01' AND order_date < '2026-12-01' LIMIT 500",
+      "gold_sql": "SELECT COUNT(DISTINCT customer_id) FROM orders WHERE order_date >= '2026-11-01' AND order_date < '2026-12-01'",
+      "reason": "",
+      "latency_ms": 3456.2,
+      "cost_usd": 0.007307,
+      "input_tokens": 2947,
+      "output_tokens": 204,
+      "pred_rows": [
+        [
+          63
+        ]
+      ],
+      "gold_rows": [
+        [
+          63
+        ]
+      ]
+    },
+    {
+      "id": "h15",
+      "difficulty": "hard",
+      "question": "Which sales channel has the highest average order value among completed and shipped orders?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT channel, AVG(total_amount) AS avg_order_value FROM orders WHERE status IN ('completed','shipped') GROUP BY channel ORDER BY avg_order_value DESC LIMIT 1",
+      "executed_sql": "SELECT channel, AVG(total_amount) AS avg_order_value FROM orders WHERE status IN ('completed', 'shipped') GROUP BY channel ORDER BY avg_order_value DESC LIMIT 1",
+      "gold_sql": "SELECT channel, ROUND(AVG(total_amount), 2) AS aov FROM orders WHERE status IN ('completed','shipped') GROUP BY channel ORDER BY aov DESC LIMIT 1",
+      "reason": "",
+      "latency_ms": 2832.7,
+      "cost_usd": 0.006556,
+      "input_tokens": 2882,
+      "output_tokens": 162,
+      "pred_rows": [
+        [
+          "marketplace",
+          731.233125
+        ]
+      ],
+      "gold_rows": [
+        [
+          "marketplace",
+          731.23
+        ]
+      ]
+    },
+    {
+      "id": "h16",
+      "difficulty": "hard",
+      "question": "What percentage of our 2026 revenue came from the web channel?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT ROUND(100.0 * SUM(total_amount) FILTER (WHERE channel = 'web') / NULLIF(SUM(total_amount), 0), 2) AS web_revenue_pct FROM orders WHERE status IN ('completed','shipped') AND order_date >= '2026-01-01' AND order_date < '2027-01-01'",
+      "executed_sql": "SELECT ROUND(100.0 * SUM(total_amount) FILTER(WHERE channel = 'web') / NULLIF(SUM(total_amount), 0), 2) AS web_revenue_pct FROM orders WHERE status IN ('completed', 'shipped') AND order_date >= '2026-01-01' AND order_date < '2027-01-01' LIMIT 500",
+      "gold_sql": "SELECT ROUND(100.0 * SUM(total_amount) FILTER (WHERE channel = 'web') / SUM(total_amount), 1) FROM orders WHERE status IN ('completed','shipped') AND order_date >= '2026-01-01' AND order_date < '2027-01-01'",
+      "reason": "",
+      "latency_ms": 4041.5,
+      "cost_usd": 0.007758,
+      "input_tokens": 3221,
+      "output_tokens": 222,
+      "pred_rows": [
+        [
+          54.19
+        ]
+      ],
+      "gold_rows": [
+        [
+          54.2
+        ]
+      ]
+    },
+    {
+      "id": "h17",
+      "difficulty": "hard",
+      "question": "What is the average order value for each customer segment, counting only completed and shipped orders?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT c.segment AS segment, AVG(o.total_amount) AS avg_order_value FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status IN ('completed','shipped') GROUP BY c.segment ORDER BY avg_order_value DESC",
+      "executed_sql": "SELECT c.segment AS segment, AVG(o.total_amount) AS avg_order_value FROM orders AS o JOIN customers AS c ON c.id = o.customer_id WHERE o.status IN ('completed', 'shipped') GROUP BY c.segment ORDER BY avg_order_value DESC LIMIT 500",
+      "gold_sql": "SELECT c.segment, ROUND(AVG(o.total_amount), 2) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status IN ('completed','shipped') GROUP BY c.segment",
+      "reason": "",
+      "latency_ms": 2850.8,
+      "cost_usd": 0.006295,
+      "input_tokens": 2868,
+      "output_tokens": 176,
+      "pred_rows": [
+        [
+          "enterprise",
+          730.7556886227545
+        ],
+        [
+          "consumer",
+          707.2168215158924
+        ],
+        [
+          "small_business",
+          701.4903703703703
+        ]
+      ],
+      "gold_rows": [
+        [
+          "consumer",
+          707.22
+        ],
+        [
+          "enterprise",
+          730.76
+        ],
+        [
+          "small_business",
+          701.49
+        ]
+      ]
+    },
+    {
+      "id": "h18",
+      "difficulty": "hard",
+      "question": "How many customers have never left a review?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT COUNT(*) AS customers FROM customers c WHERE NOT EXISTS (SELECT 1 FROM reviews r WHERE r.customer_id = c.id)",
+      "executed_sql": "SELECT COUNT(*) AS customers FROM customers AS c WHERE NOT EXISTS(SELECT 1 FROM reviews AS r WHERE r.customer_id = c.id) LIMIT 500",
+      "gold_sql": "SELECT COUNT(*) FROM customers c LEFT JOIN reviews r ON r.customer_id = c.id WHERE r.id IS NULL",
+      "reason": "",
+      "latency_ms": 2564.6,
+      "cost_usd": 0.005362,
+      "input_tokens": 2497,
+      "output_tokens": 97,
+      "pred_rows": [
+        [
+          44
+        ]
+      ],
+      "gold_rows": [
+        [
+          44
+        ]
+      ]
+    },
+    {
+      "id": "h19",
+      "difficulty": "hard",
+      "question": "Which top-level product category sold the most units in 2026?",
+      "status": "ok",
+      "correct": false,
+      "repaired": false,
+      "predicted_sql": "SELECT COALESCE(pc.name, c.name) AS category FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id LEFT JOIN categories pc ON pc.id = c.parent_id WHERE o.status IN ('completed','shipped') AND o.order_date >= '2026-01-01' AND o.order_date <= '2026-11-15' GROUP BY COALESCE(pc.name, c.name) ORDER BY SUM(oi.quantity) DESC LIMIT 1",
+      "executed_sql": "SELECT COALESCE(pc.name, c.name) AS category FROM order_items AS oi JOIN orders AS o ON o.id = oi.order_id JOIN products AS p ON p.id = oi.product_id JOIN categories AS c ON c.id = p.category_id LEFT JOIN categories AS pc ON pc.id = c.parent_id WHERE o.status IN ('completed', 'shipped') AND o.order_date >= '2026-01-01' AND o.order_date <= '2026-11-15' GROUP BY COALESCE(pc.name, c.name) ORDER BY SUM(oi.quantity) DESC LIMIT 1",
+      "gold_sql": "SELECT pc.name, SUM(oi.quantity) AS units FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id JOIN categories pc ON pc.id = c.parent_id WHERE o.status IN ('completed','shipped') AND o.order_date >= '2026-01-01' AND o.order_date < '2027-01-01' GROUP BY pc.name ORDER BY units DESC LIMIT 1",
+      "reason": "",
+      "latency_ms": 3794.2,
+      "cost_usd": 0.007486,
+      "input_tokens": 2726,
+      "output_tokens": 321,
+      "pred_rows": [
+        [
+          "Electronics"
+        ]
+      ],
+      "gold_rows": [
+        [
+          "Electronics",
+          1143
+        ]
+      ]
+    },
+    {
+      "id": "h20",
+      "difficulty": "hard",
+      "question": "On average, how many order lines does an order have?",
+      "status": "ok",
+      "correct": true,
+      "repaired": false,
+      "predicted_sql": "SELECT AVG(line_count)::numeric(10,2) AS avg_lines_per_order FROM (SELECT o.id, COUNT(oi.id) AS line_count FROM orders o LEFT JOIN order_items oi ON oi.order_id = o.id GROUP BY o.id) t",
+      "executed_sql": "SELECT CAST(AVG(line_count) AS DECIMAL(10, 2)) AS avg_lines_per_order FROM (SELECT o.id, COUNT(oi.id) AS line_count FROM orders AS o LEFT JOIN order_items AS oi ON oi.order_id = o.id GROUP BY o.id) AS t LIMIT 500",
+      "gold_sql": "SELECT ROUND(AVG(n), 2) FROM (SELECT COUNT(*) AS n FROM order_items GROUP BY order_id) t",
+      "reason": "",
+      "latency_ms": 3904.8,
+      "cost_usd": 0.007368,
+      "input_tokens": 2864,
+      "output_tokens": 237,
+      "pred_rows": [
+        [
+          2.15
+        ]
+      ],
+      "gold_rows": [
+        [
+          2.15
+        ]
+      ]
+    }
+  ],
+  "commit": null,
+  "timestamp": "2026-11-26T18:24:03.407185+00:00"
+}

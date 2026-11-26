@@ -118,9 +118,32 @@ decided from the same 40 questions the score is computed on, so **run 2 is in-sa
 
 No answer in run 2 needed the lenient metric: none returned extra columns, and q36 now returns all 235 rows (it would have been cut to 100 by the old prompt).
 What 100% does and does not mean: the fixes target exactly the failure modes run 1 exposed, so this shows those bugs are fixed, not that the system
-would score 100% on new questions. A held-out question set that was never used for tuning would be the fair next measurement; it has not been run.
+would score 100% on new questions. The held-out run below is the fair measurement.
 Raw results: [`benchmark/run2-results.json`](benchmark/run2-results.json). The recordings of both runs are in `benchmark/cassette.jsonl`
 (the public demo replays them).
+
+### Held-out set (20 new questions, prompts frozen): 19/20 = 95%
+
+[`benchmark/holdout.yaml`](benchmark/holdout.yaml): 20 questions (6 easy, 8 medium, 6 hard) written **after** the run-2 tuning and never used to
+tune anything; the prompts were frozen while it ran (same files as run 2). Gold queries were validated before the run (valid, deterministic, not
+degenerate, no ties on top-1 questions; one gold query that returned 0 was replaced before any model run).
+
+| | Held-out |
+|---|---|
+| **Strict execution accuracy** | **19/20 = 95.0%**: easy 6/6, medium 8/8, hard 5/6 (the target was at least 85%) |
+| 95% interval (Wilson) | 76% to 99%: with 20 questions this is evidence, not proof |
+| Latency, median / p95 | 3.0 s / 4.0 s (all 20 under 8 s) |
+| Cost | $0.13 for the run, about 0.65 cents per question |
+| Self-repairs | 0 |
+
+**The one miss (h19):** "Which top-level product category sold the most units in 2026?" The model answered `Electronics`, which is the right category, but
+my gold query also returned the unit count (1,143), so the strict comparison failed on the missing column. The tuned prompt told the model to return only
+what was asked, and my gold was over-specified. It is counted as a miss; it is a gold-design flaw, not a wrong answer, and the lenient metric
+deliberately does not forgive missing columns.
+
+Caveats to weigh: I wrote these questions, against the same schema and glossary, after seeing run 1's failure types, so they are not independent of
+my expectations; 20 questions is small; and the questions are in the same domain as the sample database. Raw results:
+[`benchmark/holdout-results.json`](benchmark/holdout-results.json).
 
 ### Adversarial run against the real model
 
