@@ -71,7 +71,7 @@ services:
               "--server.headless=true", "--client.toolbarMode=minimal", "--browser.gatherUsageStats=false",
               "--server.fileWatcherType=none"]
     environment:
-      ASKBASE_API_URL: http://api:8000
+      ASKBASE_API_URL: http://askbase-api:8000  # unique name: plain "api" also exists on the shared ingress network
     depends_on:
       api:
         condition: service_healthy
