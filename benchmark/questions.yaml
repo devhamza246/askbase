@@ -140,7 +140,7 @@
     WHERE o.status IN ('completed','shipped') AND o.order_date >= '2025-01-01' AND o.order_date < '2026-01-01' GROUP BY pc.name
 - id: q30
   difficulty: hard
-  question: Which 3 categories have the highest gross margin?
+  question: Which 3 sub-categories (the child categories that products belong to) have the highest gross margin?
   ordered: true
   sql: >-
     SELECT c.name, SUM((oi.unit_price - p.cost) * oi.quantity) AS margin FROM order_items oi

@@ -70,3 +70,12 @@ def test_lenient_scoring_forgives_extra_columns_only():
     assert not lenient([["UPS", 730], ["DHL", 649]], [["UPS"]], False)                # truncated or extra rows
     assert not lenient([["x"]], [["x", 1]], False)                                    # a missing column is never forgiven
     assert lenient([["a", 1]], [["a", 1]], True)                                      # exact still passes
+
+
+def test_numeric_tolerance_is_absolute_005_and_integers_are_exact():
+    assert results_match([[11.65]], [[11.6]], False)       # a rounded value against a coarser gold
+    assert results_match([[1.83]], [[1.8]], False)
+    assert not results_match([[11.7]], [[11.6]], False)    # 0.1 apart is a different answer
+    assert not results_match([[451961]], [[451960]], False)  # integers must be exact
+    assert results_match([["a", 1.83], ["b", 2.0]], [["b", 2], ["a", 1.8]], False)
+    assert not results_match([["a", 1.83]], [["b", 1.83]], False)
