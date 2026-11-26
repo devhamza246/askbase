@@ -122,13 +122,13 @@ with st.sidebar:
 
 if not st.session_state.messages:
     c1, c2, c3 = st.columns(3)
-    c1.markdown("#### 1. Ask
-In plain English. Follow-up questions remember the conversation, so you can say *and for Germany?*")
-    c2.markdown("#### 2. See the SQL
-Every answer shows the exact query next to a table and an automatic chart, so you can check it.")
-    c3.markdown("#### 3. Stay safe
-Each query is parsed and validated, then run as a database role that cannot write. "
-                "Try an attack from the sidebar.")
+    c1.markdown("#### 1. Ask")
+    c1.write("In plain English. Follow-up questions remember the conversation, so you can say *and for Germany?*")
+    c2.markdown("#### 2. See the SQL")
+    c2.write("Every answer shows the exact query next to a table and an automatic chart, so you can check it.")
+    c3.markdown("#### 3. Stay safe")
+    c3.write("Each query is parsed and validated, then run as a database role that cannot write. "
+             "Try an attack from the sidebar.")
     st.markdown("**Sample data:** an online shop with customers, orders, order lines, products, categories, payments, "
                 "shipments and reviews (January 2025 to mid-November 2026).")
     if info.get("llm_configured") is False:
