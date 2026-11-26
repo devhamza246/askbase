@@ -13,6 +13,7 @@ The validated SQL is re-parsed and re-checked after regeneration.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import sqlglot
@@ -20,6 +21,8 @@ from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
 from .sampledb import ALLOWED_TABLES
+
+logging.getLogger("sqlglot").setLevel(logging.ERROR)  # 'falling back to Command' is expected for rejected input
 
 MAX_SQL_CHARS = 6000
 MAX_NODES = 2500
