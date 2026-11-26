@@ -18,7 +18,7 @@ from .charts import pick_chart
 from .config import Settings
 from .executor import ExecutionError, QueryResult, execute as run_query
 from .guard import GuardResult, validate
-from .llm import LLM, LLMError, LLMNotConfigured, Reply, ReplayMiss, parse_json_object
+from .llm import LLM, AllowanceUsedUp, LLMError, LLMNotConfigured, Reply, ReplayMiss, parse_json_object
 from .retrieval import Context, Retriever
 
 # Phrases that make a question worth a routing call even with no history. They only *flag*; the router decides.
@@ -216,6 +216,10 @@ class Askbase:
             return finish(ans)
         except LLMNotConfigured as exc:
             return finish(Answer("no_llm", question, reason=str(exc)))
+        except AllowanceUsedUp as exc:
+            return finish(Answer("cap_reached", question, reason=(
+                f"{str(exc)[0].upper() + str(exc)[1:]}. The recorded questions in the sidebar still work and cost nothing; "
+                "live answers reset at midnight UTC. To ask anything you like, run Askbase yourself with your own API key (see the README).")))
         except ReplayMiss:
             return finish(Answer("not_recorded", question, reason=(
                 "This public demo answers from recorded runs, so it can never spend anyone's API credits. "

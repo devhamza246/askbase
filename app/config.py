@@ -27,7 +27,9 @@ class Settings:
     cassette: str = field(default_factory=lambda: os.environ.get("ASKBASE_CASSETTE", ""))
     max_rows: int = field(default_factory=lambda: _int("ASKBASE_MAX_ROWS", 500))
     statement_timeout_ms: int = field(default_factory=lambda: _int("ASKBASE_STATEMENT_TIMEOUT_MS", 5000))
-    daily_spend_cap_usd: float = field(default_factory=lambda: _float("ASKBASE_DAILY_SPEND_CAP_USD", 2.0))
+    daily_spend_cap_usd: float = field(default_factory=lambda: _float("ASKBASE_DAILY_SPEND_CAP_USD", 0.10))
+    live_calls_per_visitor: int = field(default_factory=lambda: _int("ASKBASE_LIVE_CALLS_PER_VISITOR", 12))  # about 6 new questions a day
+    record_live: bool = field(default_factory=lambda: os.environ.get("ASKBASE_RECORD_LIVE", "1") == "1")  # the public API sets 0
     rate_limit_per_min: int = field(default_factory=lambda: _int("ASKBASE_RATE_LIMIT_PER_MIN", 12))
     max_question_chars: int = field(default_factory=lambda: _int("ASKBASE_MAX_QUESTION_CHARS", 500))
 

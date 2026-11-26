@@ -115,7 +115,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(HERE / "results" / "latest.json"))
     ap.add_argument("--gauge-out")
     args = ap.parse_args()
-    settings = dataclasses.replace(Settings(), llm_mode=args.mode, cassette=args.cassette)
+    settings = dataclasses.replace(Settings(), llm_mode=args.mode, cassette=args.cassette, record_live=True)
     result = run(settings, args.limit, args.only.split(",") if args.only else None, args.questions)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(result, indent=2), encoding="utf-8")

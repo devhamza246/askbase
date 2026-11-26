@@ -216,12 +216,7 @@ def test_api_rate_limit(settings, kb_url):
     assert codes == [200, 200, 200, 429, 429]
 
 
-def test_api_daily_spend_cap(settings, kb_url):
-    agent, _, _ = make_agent(settings, kb_url, lambda u: "SELECT 1")
-    app = create_app(dataclasses.replace(settings, daily_spend_cap_usd=0.01), agent)
-    app.state.budget.add(0.02)
-    body = TestClient(app).post("/api/ask", json={"question": "How many orders?"}).json()
-    assert body["status"] == "rate_limited" and "spend cap" in body["reason"]
+# (the old 'cap blocks everything' behaviour was replaced: see the live-allowance tests below)
 
 
 # --- recorded-answer mode: the public demo replays recorded responses and never spends credits -------------------------
@@ -271,3 +266,91 @@ def test_status_reports_the_answer_mode(settings, kb_url, tmp_path):
     assert body["status"] == "not_recorded"
     live = dataclasses.replace(settings, anthropic_key="k", llm_mode="auto")
     assert TestClient(create_app(live, Askbase(live, None, Retriever(kb_url)))).get("/api/status").json()["answer_mode"] == "live"
+
+
+
+# --- live answers within a small daily allowance, falling back to recorded answers ------------------------------------------
+def _live_setup(settings, kb_url, tmp_path, monkeypatch, cap=0.10, per_visitor=12):
+    """A recording made earlier (with a mocked Claude), then a public-demo process: key present, auto mode, a tiny allowance."""
+    from app.llm import AnthropicLLM, Budget
+    cassette = tmp_path / "c.jsonl"
+    calls = _fake_anthropic(monkeypatch)
+    rec = dataclasses.replace(settings, anthropic_key="sk-test", llm_mode="auto", cassette=str(cassette))
+    Askbase(rec, AnthropicLLM(rec), Retriever(kb_url)).ask("How many customers do we have?")
+    calls["n"] = 0
+    demo = dataclasses.replace(settings, anthropic_key="sk-test", llm_mode="auto", cassette=str(cassette), record_live=False,
+                               daily_spend_cap_usd=cap, live_calls_per_visitor=per_visitor)
+    budget = Budget(cap, per_visitor)
+    return demo, AnthropicLLM(demo, budget), budget, calls, cassette
+
+
+def test_recorded_questions_are_free_and_new_ones_go_live(settings, kb_url, tmp_path, monkeypatch):
+    demo, llm, budget, calls, cassette = _live_setup(settings, kb_url, tmp_path, monkeypatch)
+    before = cassette.read_text()
+    agent = Askbase(demo, llm, Retriever(kb_url))
+    recorded = agent.ask("How many customers do we have?")
+    assert recorded.status == "ok" and calls["n"] == 0 and recorded.usage["cost_usd"] == 0   # replayed from the cassette
+    fresh = agent.ask("How many customers are there in total?")
+    assert fresh.status == "ok" and calls["n"] == 2 and fresh.usage["cost_usd"] > 0             # a new question called the model
+    assert cassette.read_text() == before                                                      # visitors' questions are never written to disk
+    assert agent.ask("How many customers are there in total?").usage["cost_usd"] == 0           # repeated in this process: free
+
+
+def test_when_the_allowance_is_used_up_recorded_answers_still_work(settings, kb_url, tmp_path, monkeypatch):
+    demo, llm, budget, calls, _ = _live_setup(settings, kb_url, tmp_path, monkeypatch, cap=0.0001)
+    agent = Askbase(demo, llm, Retriever(kb_url))
+    first = agent.ask("How many customers are there in total?")            # spends more than the tiny cap
+    # the cap ran out between the SQL call and the summary call: the answer still arrives, with a plain summary
+    assert first.status == "ok" and first.answer.startswith("The query returned") and budget.exhausted() and calls["n"] == 1
+    blocked = agent.ask("How many orders are there in total?")
+    assert blocked.status == "cap_reached" and "allowance" in blocked.reason and "recorded questions" in blocked.reason
+    assert blocked.executed_sql is None and calls["n"] == 1                  # no further model call was made
+    assert agent.ask("How many customers do we have?").status == "ok"       # the recorded one still answers
+
+
+def test_one_visitor_cannot_use_the_whole_allowance(settings, kb_url, tmp_path, monkeypatch):
+    from app.llm import visitor
+    demo, llm, budget, calls, _ = _live_setup(settings, kb_url, tmp_path, monkeypatch, cap=5.0, per_visitor=2)
+    agent = Askbase(demo, llm, Retriever(kb_url))
+    t = visitor.set("1.2.3.4")
+    try:
+        assert agent.ask("How many customers are there in total?").status == "ok"            # 2 live calls: the visitor's whole share
+        over = agent.ask("How many orders are there in total?")
+        assert over.status == "cap_reached" and "your live answers" in over.reason.lower()
+    finally:
+        visitor.reset(t)
+    t = visitor.set("5.6.7.8")
+    try:
+        assert agent.ask("How many orders are there in total?").status == "ok"                # another visitor is unaffected
+    finally:
+        visitor.reset(t)
+
+
+def test_a_visitors_own_key_bypasses_the_allowance_and_is_never_kept(settings, kb_url, tmp_path, monkeypatch):
+    demo, llm, budget, calls, cassette = _live_setup(settings, kb_url, tmp_path, monkeypatch, cap=5.0, per_visitor=2)
+    client = TestClient(create_app(demo, Askbase(demo, llm, Retriever(kb_url))))
+    own = "sk-ant-" + "x" * 30
+    q = {"question": "How many customers are there in total?"}
+    for _ in range(3):  # more than the per-visitor limit of 2 live calls: the visitor's own key is not counted
+        assert client.post("/api/ask", json=q | {"question": q["question"] + " " * _}, headers={"x-anthropic-key": own}).json()["status"] == "ok"
+    assert budget.spent == 0.0
+    assert own not in (cassette.read_text() if cassette.exists() else "")
+    bad = client.post("/api/ask", json=q, headers={"x-anthropic-key": "not-a-key"})
+    assert bad.status_code == 400
+
+
+def test_api_status_and_recorded_question_list(settings, kb_url, tmp_path, monkeypatch):
+    demo, llm, budget, calls, _ = _live_setup(settings, kb_url, tmp_path, monkeypatch)
+    client = TestClient(create_app(demo, Askbase(demo, llm, Retriever(kb_url))))
+    st = client.get("/api/status").json()
+    assert st["answer_mode"] == "live-capped" and st["daily_spend_cap_usd"] == 0.10 and st["live_calls_per_visitor"] == 12
+    assert len(st["more_examples"]) == 60 and {m["difficulty"] for m in st["more_examples"]} == {"easy", "medium", "hard"}
+    body = client.post("/api/ask", json={"question": "How many customers do we have?"}).json()
+    assert body["status"] == "ok" and body["usage"]["cost_usd"] == 0
+
+
+def test_an_unwritable_cassette_never_breaks_a_live_answer(settings, kb_url, tmp_path, monkeypatch):
+    from app.llm import AnthropicLLM
+    _fake_anthropic(monkeypatch)
+    s = dataclasses.replace(settings, anthropic_key="sk-test", llm_mode="auto", cassette="/proc/nope/cassette.jsonl", record_live=True)
+    assert Askbase(s, AnthropicLLM(s), Retriever(kb_url)).ask("How many customers are there in total?").status == "ok"

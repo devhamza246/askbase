@@ -7,9 +7,6 @@ validated on its syntax tree, rewritten with a forced `LIMIT`, regenerated, and 
 physically cannot write. Ask a business question and you get an explained answer, the SQL, a table and an automatic chart.
 Ask it to `DROP TABLE orders` and you get a refusal that says exactly why.
 
-**Live:** https://askbase.hamzacodes.dev. The public demo runs in **recorded-answer mode**: the suggested questions and attacks were run by
-the real model (Claude Sonnet 5.5 and Haiku 5.5) and recorded, and the demo replays them against the live database. It never calls a paid
-API, so it cannot spend anyone's credits; other questions get a polite "not recorded" message. The SQL-guardrail playground accepts any SQL.
 Sample database: an 8-table e-commerce shop.
 
 ## How it works
@@ -171,7 +168,7 @@ API: `POST /api/ask {question, history}` · `POST /api/validate {sql}` (verdict 
 
 ## Known limits
 
-- **Answering needs a model.** The public demo replays recorded answers (`ASKBASE_LLM_MODE=replay`). Run it yourself with
+- **Answering needs a model.** The public demo replays recorded answers and answers new questions live within a tiny daily allowance (`ASKBASE_LLM_MODE=auto`; `replay` = recorded only). Run it yourself with
   `ANTHROPIC_API_KEY` for any question; with neither, the guardrail playground still works.
 - **Single database, single schema, no per-user permissions.** One read-only role for everyone (out of scope for v1).
 - **The embedder is lexical.** It is enough for an 8-table schema with a glossary; a larger schema would want a real
@@ -186,7 +183,7 @@ API: `POST /api/ask {question, history}` · `POST /api/validate {sql}` (verdict 
 ```bash
 pip install -e ".[ui,dev]"
 docker run -d --name askbase-test-pg -e POSTGRES_PASSWORD=testadmin -p 127.0.0.1:55432:5432 pgvector/pgvector:pg16
-pytest                      # 235 tests: guard, database roles, retrieval, agent, API, benchmark validity, adversarial
+pytest                      # 265 tests: guard, database roles, retrieval, agent, API, benchmark validity, adversarial
 ```
 
 MIT licensed.

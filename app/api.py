@@ -13,7 +13,7 @@ from . import __version__
 from .agent import Askbase
 from .config import Settings
 from .guard import validate
-from .llm import AnthropicLLM, Budget
+from .llm import AnthropicLLM, Budget, user_key, visitor
 from .retrieval import Retriever
 
 EXAMPLE_QUESTIONS = [
@@ -68,10 +68,22 @@ def client_ip(request: Request) -> str:
     return request.headers.get("cf-connecting-ip") or request.headers.get("x-real-ip") or (request.client.host if request.client else "?")
 
 
+def _recorded_questions() -> list[dict]:
+    """The benchmark and held-out questions: all of them were run by the real model and recorded, so they replay for free."""
+    import yaml
+    from pathlib import Path
+    out: list[dict] = []
+    for name in ("questions.yaml", "holdout.yaml"):
+        f = Path(__file__).resolve().parent.parent / "benchmark" / name
+        if f.is_file():
+            out += [{"question": q["question"], "difficulty": q["difficulty"]} for q in yaml.safe_load(f.read_text(encoding="utf-8"))]
+    return out
+
+
 def create_app(settings: Settings | None = None, agent: Askbase | None = None) -> FastAPI:
     s = settings or Settings()
     app = FastAPI(title="Askbase", version=__version__)
-    budget = Budget(s.daily_spend_cap_usd)
+    budget = Budget(s.daily_spend_cap_usd, s.live_calls_per_visitor)
     limiter = RateLimiter(s.rate_limit_per_min)
     if agent is None:
         llm = AnthropicLLM(s, budget) if s.llm_configured else None
@@ -89,20 +101,32 @@ def create_app(settings: Settings | None = None, agent: Askbase | None = None) -
 
     @app.get("/api/status")
     def status() -> dict:
-        mode = "recorded" if s.llm_mode == "replay" else ("live" if s.anthropic_key else "none")
+        if s.llm_mode == "replay":
+            mode = "recorded"
+        elif s.anthropic_key:
+            mode = "live-capped" if s.daily_spend_cap_usd > 0 else "live"
+        else:
+            mode = "none"
         return {"version": __version__, "llm_configured": agent.llm is not None, "answer_mode": mode, "max_rows": s.max_rows,
                 "statement_timeout_ms": s.statement_timeout_ms, "daily_spend_cap_usd": s.daily_spend_cap_usd,
-                "spent_today_usd": round(budget.spent, 4), "models": {"sql": s.sql_model, "fast": s.fast_model},
-                "examples": EXAMPLE_QUESTIONS, "attack_prompts": ATTACK_PROMPTS}
+                "spent_today_usd": round(budget.spent, 4), "live_calls_per_visitor": s.live_calls_per_visitor,
+                "models": {"sql": s.sql_model, "fast": s.fast_model},
+                "examples": EXAMPLE_QUESTIONS, "attack_prompts": ATTACK_PROMPTS, "more_examples": _recorded_questions()}
 
     @app.post("/api/ask")
     def ask(req: AskRequest, request: Request) -> dict:
         if not limiter.allow(client_ip(request)):
             raise HTTPException(status_code=429, detail=f"rate limit: at most {s.rate_limit_per_min} questions per minute")
-        if budget.exhausted():
-            return {"status": "rate_limited", "question": req.question, "reason":
-                    "The daily spend cap for this public demo has been reached. Try again tomorrow, or run it yourself."}
-        return agent.ask(req.question, req.history).to_dict()
+        own = (request.headers.get("x-anthropic-key") or "").strip()
+        if own and not (own.startswith("sk-ant-") and 20 <= len(own) <= 300):
+            raise HTTPException(status_code=400, detail="that does not look like an Anthropic API key (it starts with sk-ant-)")
+        token = visitor.set(client_ip(request))  # live calls are counted per visitor; recorded answers are never blocked
+        key_token = user_key.set(own)
+        try:
+            return agent.ask(req.question, req.history).to_dict()
+        finally:
+            user_key.reset(key_token)
+            visitor.reset(token)
 
     @app.post("/api/validate")
     def validate_sql(req: ValidateRequest, request: Request) -> dict:

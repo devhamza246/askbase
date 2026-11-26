@@ -22,7 +22,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cassette", default="benchmark/cassette.jsonl")
     args = ap.parse_args()
-    settings = dataclasses.replace(Settings(), llm_mode="auto", cassette=args.cassette, daily_spend_cap_usd=0)
+    settings = dataclasses.replace(Settings(), llm_mode="auto", cassette=args.cassette, daily_spend_cap_usd=0, record_live=True)
     if not settings.anthropic_key:
         print("ANTHROPIC_API_KEY is not set; only already-recorded prompts will be replayed.", file=sys.stderr)
     agent = Askbase(settings, AnthropicLLM(settings), Retriever(_kb_url(settings)))

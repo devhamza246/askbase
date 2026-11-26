@@ -48,7 +48,7 @@ def render_answer(a: dict):
         st.error(f"🛡️ **Blocked by the guardrail, nothing was executed.** {a.get('reason', '')}")
     elif status_ == "refused":
         st.warning(a.get("reason") or "I can't help with that.")
-    elif status_ in ("error", "no_llm", "rate_limited", "not_recorded"):
+    elif status_ in ("error", "no_llm", "rate_limited", "not_recorded", "cap_reached"):
         st.info(a.get("reason") or "Something went wrong.")
     if a.get("answer"):
         st.markdown(a["answer"])
@@ -79,7 +79,9 @@ def ask(question: str):
     st.session_state.messages.append({"role": "user", "content": question})
     history = [{"role": m["role"], "content": m["content"] if m["role"] == "user" else m.get("summary", "")}
                for m in st.session_state.messages[:-1] if m["role"] == "user" or m.get("summary")]
-    resp = api("POST", "/api/ask", json={"question": question, "history": history[-6:]})
+    own = st.session_state.get("own_key", "").strip()  # held in this browser session's memory only, sent per request, never saved
+    resp = api("POST", "/api/ask", json={"question": question, "history": history[-6:]},
+               headers={"x-anthropic-key": own} if own else None)
     st.session_state.messages.append({"role": "assistant", "content": "", "data": resp,
                                       "summary": resp.get("answer") or resp.get("reason", "")})
 
@@ -96,6 +98,13 @@ with st.sidebar:
     for q in info.get("examples", []):
         if st.button(q, key=f"ex-{q}", use_container_width=True):
             ask(q)
+    more = info.get("more_examples", [])
+    if more:
+        with st.expander(f"More questions ({len(more)} recorded)"):
+            labels = [f"[{m['difficulty']}] {m['question']}" for m in more]
+            pick = st.selectbox("Pick one", labels, label_visibility="collapsed", key="more_pick")
+            if st.button("Ask this", key="more_go", use_container_width=True):
+                ask(more[labels.index(pick)]["question"])
     st.subheader("Try an attack")
     st.caption("Destructive or sneaky prompts. They are stopped before the database sees them.")
     for q in info.get("attack_prompts", []):
@@ -112,10 +121,23 @@ with st.sidebar:
         else:
             st.error("Blocked: " + "; ".join(verdict.get("reasons", [verdict.get("reason", "?")])))
     st.divider()
-    if info.get("answer_mode") == "recorded":
-        st.info("**Recorded-answer mode.** The suggested questions above were run by the real model and recorded. "
-                "This demo replays them, so it never calls a paid API and cannot spend anyone's credits. "
-                "Other questions are not answered here.")
+    with st.expander("Use your own Anthropic key"):
+        st.text_input("API key", type="password", key="own_key", placeholder="sk-ant-…", label_visibility="collapsed")
+        st.caption("Optional. With your key, any question is answered live and does not use this demo's allowance (you pay Anthropic, "
+                   "typically a cent or two per question). The key is kept in this browser session's memory only and sent with each "
+                   "request. It is never stored, logged or recorded. Best practice: create a separate key with a low spend limit and "
+                   "delete it afterwards.")
+        if st.session_state.get("own_key", "").strip():
+            st.success("Your key is in use for this session.")
+    mode = info.get("answer_mode")
+    if mode == "recorded":
+        st.info("**Recorded-answer mode.** The suggested questions were run by the real model and recorded. This demo replays them, so it never "
+                "calls a paid API. Other questions are not answered here.")
+    elif mode == "live-capped":
+        left = max(0.0, info.get("daily_spend_cap_usd", 0) - info.get("spent_today_usd", 0))
+        st.info(f"**Ask anything.** New questions are answered live by the real model within a small daily allowance "
+                f"(${left:.2f} of ${info.get('daily_spend_cap_usd', 0):.2f} left today, about {info.get('live_calls_per_visitor', 0) // 2} "
+                "live questions per visitor). When it runs out, the recorded questions keep working.")
     elif info.get("llm_configured") is False:
         st.warning("No language model is configured on this server, so questions are not answered yet. The guardrail playground still works.")
     st.caption(f"Row cap {info.get('max_rows', '?')} · timeout {info.get('statement_timeout_ms', 0) / 1000:.0f}s · "
@@ -125,6 +147,15 @@ with st.sidebar:
         st.rerun()
 
 if not st.session_state.messages:
+    st.markdown("### What is this?")
+    st.write("Askbase lets anyone ask a company database a question in plain English and get back the answer, the exact SQL and a chart. "
+             "It is aimed at teams where only one or two people can write SQL, so everyone else waits on them for simple numbers.")
+    st.markdown("**Problems it solves:** waiting days for a report, and the fear of letting an AI near a production database. "
+                "Askbase answers in seconds, shows its work so you can verify it, and cannot change data: every query is parsed, "
+                "checked against an allow-list, and run as a database role that has no write permission.")
+    st.markdown("**How to use it:** click a suggested question in the sidebar (or type your own below), read the answer, open the SQL, "
+                "then try an *attack* from the sidebar to watch the guardrail stop it. Want to ask your own questions without limits? "
+                "Add your own Anthropic key in the sidebar.")
     c1, c2, c3 = st.columns(3)
     c1.markdown("#### 1. Ask")
     c1.write("In plain English. Follow-up questions remember the conversation, so you can say *and for Germany?*")
