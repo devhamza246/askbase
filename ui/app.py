@@ -6,6 +6,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from tour import run_tour, tour_button
+
 API = os.environ.get("ASKBASE_API_URL", "http://localhost:8000").rstrip("/")
 
 st.set_page_config(page_title="Askbase", page_icon="🔎", layout="wide")
@@ -80,8 +82,9 @@ def ask(question: str):
     history = [{"role": m["role"], "content": m["content"] if m["role"] == "user" else m.get("summary", "")}
                for m in st.session_state.messages[:-1] if m["role"] == "user" or m.get("summary")]
     own = st.session_state.get("own_key", "").strip()  # held in this browser session's memory only, sent per request, never saved
-    resp = api("POST", "/api/ask", json={"question": question, "history": history[-6:]},
-               headers={"x-anthropic-key": own} if own else None)
+    with st.spinner("Working on it: writing the SQL, checking it is read-only, running it… (a new question takes about 5-15 seconds)"):
+        resp = api("POST", "/api/ask", json={"question": question, "history": history[-6:]},
+                   headers={"x-anthropic-key": own} if own else None)
     st.session_state.messages.append({"role": "assistant", "content": "", "data": resp,
                                       "summary": resp.get("answer") or resp.get("reason", "")})
 
@@ -91,9 +94,11 @@ if "messages" not in st.session_state:
 
 st.title("Askbase")
 st.caption("Ask your database in plain English. Read-only by design, and the SQL is always shown.")
-info = status()
+with st.spinner("Connecting to the demo…"):
+    info = status()
 
 with st.sidebar:
+    tour_button()
     st.subheader("Try a question")
     for q in info.get("examples", []):
         if st.button(q, key=f"ex-{q}", use_container_width=True):
@@ -147,15 +152,8 @@ with st.sidebar:
         st.rerun()
 
 if not st.session_state.messages:
-    st.markdown("### What is this?")
-    st.write("Askbase lets anyone ask a company database a question in plain English and get back the answer, the exact SQL and a chart. "
-             "It is aimed at teams where only one or two people can write SQL, so everyone else waits on them for simple numbers.")
-    st.markdown("**Problems it solves:** waiting days for a report, and the fear of letting an AI near a production database. "
-                "Askbase answers in seconds, shows its work so you can verify it, and cannot change data: every query is parsed, "
-                "checked against an allow-list, and run as a database role that has no write permission.")
-    st.markdown("**How to use it:** click a suggested question in the sidebar (or type your own below), read the answer, open the SQL, "
-                "then try an *attack* from the sidebar to watch the guardrail stop it. Want to ask your own questions without limits? "
-                "Add your own Anthropic key in the sidebar.")
+    st.info("**New here?** Askbase answers questions about a company database in plain English, so nobody waits days for a simple report, "
+            "and it cannot change data. Click **Take the tour** in the sidebar, or just pick a suggested question.")
     c1, c2, c3 = st.columns(3)
     c1.markdown("#### 1. Ask")
     c1.write("In plain English. Follow-up questions remember the conversation, so you can say *and for Germany?*")
@@ -183,3 +181,23 @@ for m in st.session_state.messages:
 if prompt := st.chat_input("Ask a question about orders, customers, products, payments…"):
     ask(prompt)
     st.rerun()
+
+SB = '[data-testid="stSidebar"]'
+run_tour("askbase", [
+    {"title": "Welcome to Askbase", "body": "Ask a database a question in plain English and get the answer, the SQL behind it and a chart. "
+     "This 30-second tour shows the parts worth trying. Use Next, or press Esc to skip."},
+    {"sel": f"{SB} h3", "text": "Try a question", "title": "1. Start with a suggested question",
+     "body": "Click any of these. They were recorded from the real model, so they answer instantly and cost nothing. "
+             "Open 'More questions' below for 60 more, from easy to hard."},
+    {"sel": '[data-testid="stChatInput"]', "title": "2. Or ask your own",
+     "body": "Type anything about orders, customers, products or payments. Follow-ups like 'and for Germany?' remember the conversation."},
+    {"sel": f"{SB} h3", "text": "Try an attack", "title": "3. Try to break it",
+     "body": "These prompts try to delete or leak data. Watch the guardrail stop them before the database ever sees them."},
+    {"sel": f"{SB} textarea", "title": "4. SQL guardrail playground",
+     "body": "Paste any SQL here to see whether it would be allowed. Nothing is run; it is only checked."},
+    {"sel": f"{SB} summary", "text": "own Anthropic key", "title": "5. Use your own key (optional)",
+     "body": "Paste your Anthropic key to ask unlimited new questions without using this demo's small daily allowance. "
+             "It stays in your browser session and is never stored."},
+    {"sel": f"{SB} button", "text": "Take the tour", "title": "That's it",
+     "body": "You can replay this tour any time from this button."},
+])
