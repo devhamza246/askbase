@@ -119,6 +119,7 @@ def main() -> int:
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(result, indent=2), encoding="utf-8")
     if args.gauge_out:
+        Path(args.gauge_out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.gauge_out).write_text(json.dumps(to_gauge(result)), encoding="utf-8")
     s = result["summary"]
     print(f"\nexecution accuracy: {s['correct']}/{s['total']} = {s['execution_accuracy']:.1%} | "
