@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 [[ -f .env ]] || { echo ".env not found" >&2; exit 2; }
 grep -Eq '^ANTHROPIC_API_KEY=.+' .env || { echo "ANTHROPIC_API_KEY is empty in .env" >&2; exit 2; }
 DC="docker compose --env-file .env"
-[[ -s benchmark/cassette.jsonl ]] && $DC cp benchmark/cassette.jsonl api:/tmp/cassette.jsonl
+if [[ -s benchmark/cassette.jsonl ]]; then $DC cp benchmark/cassette.jsonl api:/tmp/cassette.jsonl; $DC exec -T -u root api chown askbase:askbase /tmp/cassette.jsonl; fi
 set +e
 $DC exec -T api python -m benchmark.record_demo --cassette /tmp/cassette.jsonl
 status=$?

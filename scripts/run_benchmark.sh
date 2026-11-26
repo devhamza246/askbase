@@ -12,7 +12,7 @@ DC="docker compose --env-file .env"
 mkdir -p benchmark/results
 
 # keep an existing cassette so repeat runs only pay for new requests
-[[ -s benchmark/cassette.jsonl ]] && $DC cp benchmark/cassette.jsonl api:/tmp/cassette.jsonl
+if [[ -s benchmark/cassette.jsonl ]]; then $DC cp benchmark/cassette.jsonl api:/tmp/cassette.jsonl; $DC exec -T -u root api chown askbase:askbase /tmp/cassette.jsonl; fi
 
 echo "== benchmark (live model on cassette misses)"
 set +e
