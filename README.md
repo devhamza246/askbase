@@ -7,6 +7,11 @@ validated on its syntax tree, rewritten with a forced `LIMIT`, regenerated, and 
 physically cannot write. Ask a business question and you get an explained answer, the SQL, a table and an automatic chart.
 Ask it to `DROP TABLE orders` and you get a refusal that says exactly why.
 
+**Live:** https://askbase.hamzacodes.dev. The 60 suggested questions and the attacks were run by the real model (Claude Sonnet 5.5 and
+Haiku 5.5), recorded, and are replayed free against the live database. **Any other question is answered live** by the real model within a
+small daily allowance (about $0.10 a day for the whole demo, about 6 new questions per visitor); when it runs out the recorded questions
+keep working. Or paste **your own Anthropic key** in the sidebar: it is sent per request, held in your session's memory only, never
+stored, logged or recorded, and your questions then don't use the demo's allowance. The SQL-guardrail playground accepts any SQL.
 Sample database: an 8-table e-commerce shop.
 
 ## How it works
